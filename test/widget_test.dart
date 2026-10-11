@@ -37,7 +37,7 @@ void main() {
       repository.tasks.add(
         Task(
           id: 'tomorrow$i',
-          title: 'غد $i',
+          title: 'مهمة طويلة للغد تحتاج إلى اختصار في البطاقة $i',
           bucket: TaskBucket.tomorrow,
           createdAt: now,
           updatedAt: now,
@@ -47,7 +47,7 @@ void main() {
       repository.tasks.add(
         Task(
           id: 'later$i',
-          title: 'مؤجل $i',
+          title: 'مهمة مؤجلة طويلة تحتاج إلى اختصار في البطاقة $i',
           bucket: TaskBucket.later,
           createdAt: now,
           updatedAt: now,
@@ -88,6 +88,43 @@ void main() {
     expect(find.text('مكتمل 1'), findsNothing);
     expect(find.text('عرض 2 مهام أخرى'), findsOneWidget);
     expect(find.text('عرض 1 مهام أخرى'), findsNWidgets(2));
+    for (final sectionIndex in [1, 2]) {
+      final row = find
+          .descendant(
+            of: sections.at(sectionIndex),
+            matching: find.byType(TaskRow),
+          )
+          .first;
+      final title = find.descendant(of: row, matching: find.byType(Text)).first;
+      expect(tester.widget<Text>(title).maxLines, 1);
+      expect(tester.widget<Text>(title).overflow, TextOverflow.ellipsis);
+      final checkbox = find
+          .descendant(
+            of: row,
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Container &&
+                  widget.decoration is BoxDecoration &&
+                  (widget.decoration! as BoxDecoration).shape ==
+                      BoxShape.circle,
+            ),
+          )
+          .first;
+      expect(tester.getSize(checkbox), const Size(18, 18));
+    }
+    final completedRow = find
+        .descendant(of: sections.at(3), matching: find.byType(TaskRow))
+        .first;
+    expect(
+      tester
+          .widget<Text>(
+            find
+                .descendant(of: completedRow, matching: find.byType(Text))
+                .first,
+          )
+          .maxLines,
+      2,
+    );
   });
 
   testWidgets('today preview opens the live full list', (tester) async {

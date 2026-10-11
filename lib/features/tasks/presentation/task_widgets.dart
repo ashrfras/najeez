@@ -9,10 +9,12 @@ class TaskRow extends StatelessWidget {
     required this.task,
     required this.onToggle,
     required this.onActions,
+    this.dense = false,
   });
   final Task task;
   final VoidCallback onToggle;
   final VoidCallback onActions;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -28,8 +30,8 @@ class TaskRow extends StatelessWidget {
               GestureDetector(
                 onTap: onToggle,
                 child: Container(
-                  width: 23,
-                  height: 23,
+                  width: dense ? 18 : 23,
+                  height: dense ? 18 : 23,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: task.isCompleted
@@ -39,22 +41,26 @@ class TaskRow extends StatelessWidget {
                       color: task.isCompleted
                           ? AppColors.green
                           : AppColors.muted,
-                      width: 1.6,
+                      width: dense ? 1.4 : 1.6,
                     ),
                   ),
                   child: task.isCompleted
-                      ? const Icon(Icons.check, size: 17, color: Colors.white)
+                      ? Icon(
+                          Icons.check,
+                          size: dense ? 13 : 17,
+                          color: Colors.white,
+                        )
                       : null,
                 ),
               ),
-              const SizedBox(width: 11),
+              SizedBox(width: dense ? 7 : 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       task.title,
-                      maxLines: 2,
+                      maxLines: dense ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.body.copyWith(
                         color: task.isCompleted
@@ -123,6 +129,7 @@ class TaskSection extends StatelessWidget {
     this.onAdd,
     this.previewLimit,
     this.onOpenAll,
+    this.denseRows = false,
   });
   final String title;
   final List<Task> tasks;
@@ -133,6 +140,7 @@ class TaskSection extends StatelessWidget {
   final VoidCallback? onAdd;
   final int? previewLimit;
   final VoidCallback? onOpenAll;
+  final bool denseRows;
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +211,7 @@ class TaskSection extends StatelessWidget {
               ),
             TaskRow(
               task: tasks[i],
+              dense: denseRows,
               onToggle: () => onToggle(tasks[i]),
               onActions: () => onActions(tasks[i]),
             ),
