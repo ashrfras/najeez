@@ -1,0 +1,36 @@
+name: baqi
+description: A quiet, local-first Arabic task app.
+publish_to: 'none'
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  path: ^1.9.1
+  sqflite: ^2.4.2
+  sqflite_common_ffi_web: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  sqflite_common_ffi: ^2.3.6
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+    - assets/logo_mark.png
+  fonts:
+    - family: Plex Arabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
