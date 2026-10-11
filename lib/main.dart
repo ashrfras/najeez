@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -7,6 +9,7 @@ import 'core/design.dart';
 import 'features/tasks/data/sqlite_task_repository.dart';
 import 'features/tasks/domain/task_controller.dart';
 import 'features/tasks/presentation/home_screen.dart';
+import 'features/tasks/presentation/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +22,40 @@ Future<void> main() async {
   runApp(BaqiApp(controller: controller));
 }
 
-class BaqiApp extends StatelessWidget {
-  const BaqiApp({super.key, required this.controller});
+class BaqiApp extends StatefulWidget {
+  const BaqiApp({
+    super.key,
+    required this.controller,
+    this.splashDuration = const Duration(milliseconds: 2800),
+  });
+
   final TaskController controller;
+  final Duration splashDuration;
+
+  @override
+  State<BaqiApp> createState() => _BaqiAppState();
+}
+
+class _BaqiAppState extends State<BaqiApp> {
+  Timer? _splashTimer;
+  late bool _showSplash;
+
+  @override
+  void initState() {
+    super.initState();
+    _showSplash = widget.splashDuration > Duration.zero;
+    if (_showSplash) {
+      _splashTimer = Timer(widget.splashDuration, () {
+        if (mounted) setState(() => _showSplash = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -45,7 +79,15 @@ class BaqiApp extends StatelessWidget {
     ),
     home: Directionality(
       textDirection: TextDirection.rtl,
-      child: HomeScreen(controller: controller),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 350),
+        child: _showSplash
+            ? const SplashScreen(key: ValueKey('splash'))
+            : HomeScreen(
+                key: const ValueKey('home'),
+                controller: widget.controller,
+              ),
+      ),
     ),
   );
 }

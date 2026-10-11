@@ -56,3 +56,13 @@ flutter build ipa --release --export-method app-store
 ```
 
 This also writes `build/ios/ipa/نجيز.ipa`, replacing the prior export at that path. Increment the build number in `pubspec.yaml` before uploading another build of the same version.
+
+## Build number on commits
+
+The repository's `.githooks/pre-commit` increments the build number in `pubspec.yaml` and stages that change with every commit. Enable it after cloning with:
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+If `pubspec.yaml` has unstaged changes, stage or discard them before committing so the hook does not stage unrelated edits.

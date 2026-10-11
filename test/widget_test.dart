@@ -25,7 +25,9 @@ void main() {
   ) async {
     final controller = TaskController(MemoryRepository());
     await controller.load();
-    await tester.pumpWidget(BaqiApp(controller: controller));
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
     await tester.tap(find.text('أضف مهمة بسرعة ...'));
     await tester.pumpAndSettle();
     expect(find.text('إضافة مهمة'), findsOneWidget);
@@ -48,7 +50,9 @@ void main() {
     final controller = TaskController(MemoryRepository());
     await controller.load();
     await controller.create('مهمة سابقة', tag: 'شخصي');
-    await tester.pumpWidget(BaqiApp(controller: controller));
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
     await tester.tap(find.text('أضف مهمة بسرعة ...'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'مهمة جديدة');
@@ -64,7 +68,9 @@ void main() {
     final controller = TaskController(MemoryRepository());
     await controller.load();
     await controller.create('عنوان قديم', tag: 'شخصي');
-    await tester.pumpWidget(BaqiApp(controller: controller));
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
     await tester.tap(find.text('عنوان قديم'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('تعديل المهمة'));

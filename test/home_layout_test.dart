@@ -61,7 +61,9 @@ void main() {
       clock: () => DateTime(2026, 10, 11, 10, 24),
     );
     await controller.load();
-    await tester.pumpWidget(BaqiApp(controller: controller));
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
     await tester.pumpAndSettle();
     expect(find.text('اليوم'), findsOneWidget);
     expect(tester.getCenter(find.byType(Image)).dx, closeTo(195, 0.5));
@@ -77,7 +79,9 @@ void main() {
     });
     final controller = TaskController(VisualRepository());
     await controller.load();
-    await tester.pumpWidget(BaqiApp(controller: controller));
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
     await tester.tap(find.text('أضف مهمة بسرعة ...'));
     await tester.pumpAndSettle();
     expect(find.text('إضافة مهمة'), findsOneWidget);
