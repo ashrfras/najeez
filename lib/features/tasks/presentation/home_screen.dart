@@ -5,8 +5,8 @@ import '../../../core/design.dart';
 import '../../history/presentation/history_screen.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
-import '../domain/task_dates.dart';
 import 'task_composer_screen.dart';
+import 'task_list_screen.dart';
 import 'task_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -199,29 +199,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
   );
 
+  void _toggleTask(Task task) {
+    final operation = task.isCompleted
+        ? widget.controller.restore(task)
+        : widget.controller.complete(task);
+    operation.catchError((_) => _showError());
+  }
+
+  void _openList(TaskListKind kind) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => TaskListScreen(
+        controller: widget.controller,
+        kind: kind,
+        onToggle: _toggleTask,
+        onActions: _showActions,
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final now = widget.controller.now;
-    final pending = widget.controller.tasks
-        .where((task) => !task.isCompleted)
-        .toList();
-    final today = pending
-        .where((task) => visibleBucket(task, now) == TaskBucket.today)
-        .toList();
-    final later = pending
-        .where((task) => visibleBucket(task, now) == TaskBucket.later)
-        .toList();
-    final tomorrow = pending
-        .where((task) => visibleBucket(task, now) == TaskBucket.tomorrow)
-        .toList();
-    final completed =
-        widget.controller.tasks
-            .where(
-              (task) =>
-                  task.completedAt != null && sameDay(task.completedAt!, now),
-            )
-            .toList()
-          ..sort((a, b) => b.completedAt!.compareTo(a.completedAt!));
+    final today = TaskListKind.today.select(widget.controller);
+    final tomorrow = TaskListKind.tomorrow.select(widget.controller);
+    final later = TaskListKind.later.select(widget.controller);
+    final completed = TaskListKind.completedToday.select(widget.controller);
 
     return Scaffold(
       body: SafeArea(
@@ -303,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: 'تم اليوم',
                             color: AppColors.green,
                             icon: Icons.check,
-                            onTap: () {},
+                            onTap: () => _openList(TaskListKind.completedToday),
                           ),
                           const SizedBox(width: 8),
                           _Stat(
@@ -311,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: 'غداً',
                             color: AppColors.blue,
                             icon: Icons.calendar_month_outlined,
-                            onTap: () {},
+                            onTap: () => _openList(TaskListKind.tomorrow),
                           ),
                           const SizedBox(width: 8),
                           _Stat(
@@ -319,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: 'لاحقاً',
                             color: AppColors.orange,
                             icon: Icons.all_inclusive,
-                            onTap: () {},
+                            onTap: () => _openList(TaskListKind.later),
                           ),
                         ],
                       ),
@@ -364,9 +366,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         tasks: today,
                         accent: AppColors.blue,
                         icon: Icons.adjust,
-                        onToggle: (task) => widget.controller
-                            .complete(task)
-                            .catchError((_) => _showError()),
+                        previewLimit: 5,
+                        onOpenAll: () => _openList(TaskListKind.today),
+                        onToggle: _toggleTask,
                         onActions: _showActions,
                       ),
                       const SizedBox(height: 13),
@@ -379,9 +381,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               tasks: tomorrow,
                               accent: AppColors.blue,
                               icon: Icons.calendar_month_outlined,
-                              onToggle: (task) => widget.controller
-                                  .complete(task)
-                                  .catchError((_) => _showError()),
+                              previewLimit: 2,
+                              onOpenAll: () => _openList(TaskListKind.tomorrow),
+                              onToggle: _toggleTask,
                               onActions: _showActions,
                             ),
                           ),
@@ -392,9 +394,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               tasks: later,
                               accent: AppColors.orange,
                               icon: Icons.all_inclusive,
-                              onToggle: (task) => widget.controller
-                                  .complete(task)
-                                  .catchError((_) => _showError()),
+                              previewLimit: 2,
+                              onOpenAll: () => _openList(TaskListKind.later),
+                              onToggle: _toggleTask,
                               onActions: _showActions,
                             ),
                           ),
@@ -406,9 +408,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         tasks: completed,
                         accent: AppColors.green,
                         icon: Icons.check,
-                        onToggle: (task) => widget.controller
-                            .restore(task)
-                            .catchError((_) => _showError()),
+                        previewLimit: 3,
+                        onOpenAll: () => _openList(TaskListKind.completedToday),
+                        onToggle: _toggleTask,
                         onActions: _showActions,
                       ),
                     ]),
@@ -438,44 +440,48 @@ class _Stat extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: panel(),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: .15),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: panel(),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: .15),
+              ),
+              child: Icon(icon, color: color, size: 21),
             ),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: 7),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 22,
-                    height: 1,
-                    fontWeight: FontWeight.w800,
+            const SizedBox(width: 7),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 22,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.caption.copyWith(fontSize: 10),
-                ),
-              ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.caption.copyWith(fontSize: 10),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );

@@ -121,6 +121,8 @@ class TaskSection extends StatelessWidget {
     required this.onToggle,
     required this.onActions,
     this.onAdd,
+    this.previewLimit,
+    this.onOpenAll,
   });
   final String title;
   final List<Task> tasks;
@@ -129,75 +131,109 @@ class TaskSection extends StatelessWidget {
   final void Function(Task) onToggle;
   final void Function(Task) onActions;
   final VoidCallback? onAdd;
+  final int? previewLimit;
+  final VoidCallback? onOpenAll;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: panel(),
-    clipBehavior: Clip.antiAlias,
-    child: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(13, 11, 13, 9),
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .15),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(icon, size: 18, color: accent),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.section,
-                ),
-              ),
-              const SizedBox(width: 8),
-              CountBadge(count: tasks.length, color: accent),
-              if (onAdd != null)
-                GestureDetector(
-                  onTap: onAdd,
-                  child: Icon(Icons.add, size: 20, color: accent),
-                ),
-            ],
-          ),
-        ),
-        if (tasks.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 2, 12, 17),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'لا توجد مهام هنا',
-                style: AppType.caption.copyWith(
-                  color: AppColors.muted.withValues(alpha: .7),
-                ),
+  Widget build(BuildContext context) {
+    final visibleCount = previewLimit == null
+        ? tasks.length
+        : tasks.length.clamp(0, previewLimit!);
+    final remainingCount = tasks.length - visibleCount;
+    return Container(
+      decoration: panel(),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onOpenAll,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(13, 11, 13, 9),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .15),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(icon, size: 18, color: accent),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.section,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CountBadge(count: tasks.length, color: accent),
+                  if (onAdd != null)
+                    GestureDetector(
+                      onTap: onAdd,
+                      child: Icon(Icons.add, size: 20, color: accent),
+                    ),
+                ],
               ),
             ),
           ),
-        for (var i = 0; i < tasks.length; i++) ...[
-          if (i > 0 || tasks.isNotEmpty)
+          if (tasks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 2, 12, 17),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'لا توجد مهام هنا',
+                  style: AppType.caption.copyWith(
+                    color: AppColors.muted.withValues(alpha: .7),
+                  ),
+                ),
+              ),
+            ),
+          for (var i = 0; i < visibleCount; i++) ...[
+            if (i > 0 || tasks.isNotEmpty)
+              const Divider(
+                height: 1,
+                indent: 13,
+                endIndent: 13,
+                color: AppColors.border,
+              ),
+            TaskRow(
+              task: tasks[i],
+              onToggle: () => onToggle(tasks[i]),
+              onActions: () => onActions(tasks[i]),
+            ),
+          ],
+          if (remainingCount > 0 && onOpenAll != null) ...[
             const Divider(
               height: 1,
               indent: 13,
               endIndent: 13,
               color: AppColors.border,
             ),
-          TaskRow(
-            task: tasks[i],
-            onToggle: () => onToggle(tasks[i]),
-            onActions: () => onActions(tasks[i]),
-          ),
+            InkWell(
+              onTap: onOpenAll,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 12,
+                ),
+                child: Center(
+                  child: Text(
+                    'عرض $remainingCount مهام أخرى',
+                    style: AppType.body.copyWith(color: accent),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class CountBadge extends StatelessWidget {
