@@ -12,11 +12,13 @@ class TaskRow extends StatefulWidget {
     required this.onToggle,
     required this.onActions,
     this.dense = false,
+    this.showTime = true,
   });
   final Task task;
   final VoidCallback onToggle;
   final VoidCallback onActions;
   final bool dense;
+  final bool showTime;
 
   @override
   State<TaskRow> createState() => _TaskRowState();
@@ -160,9 +162,26 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                                 : null,
                           ),
                         ),
-                        if (compact && widget.task.tag != null) ...[
+                        if ((widget.showTime && widget.task.totalMinutes > 0) ||
+                            (compact && widget.task.tag != null)) ...[
                           const SizedBox(height: 5),
-                          _TagBadge(label: widget.task.tag!),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              if (widget.showTime &&
+                                  widget.task.totalMinutes > 0)
+                                Text(
+                                  '◷ ${durationLabel(widget.task.totalMinutes)}',
+                                  style: AppType.caption.copyWith(
+                                    color: AppColors.blue,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              if (compact && widget.task.tag != null)
+                                _TagBadge(label: widget.task.tag!),
+                            ],
+                          ),
                         ],
                       ],
                     ),
@@ -227,6 +246,7 @@ class TaskSection extends StatelessWidget {
     this.previewLimit,
     this.onOpenAll,
     this.denseRows = false,
+    this.showTime = true,
   });
   final String title;
   final List<Task> tasks;
@@ -238,6 +258,7 @@ class TaskSection extends StatelessWidget {
   final int? previewLimit;
   final VoidCallback? onOpenAll;
   final bool denseRows;
+  final bool showTime;
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +331,7 @@ class TaskSection extends StatelessWidget {
               key: ValueKey(tasks[i].id),
               task: tasks[i],
               dense: denseRows,
+              showTime: showTime,
               onToggle: () => onToggle(tasks[i]),
               onActions: () => onActions(tasks[i]),
             ),

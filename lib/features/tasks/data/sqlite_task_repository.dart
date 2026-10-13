@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
@@ -16,7 +17,7 @@ class SqliteTaskRepository implements TaskRepository {
         (kIsWeb ? 'baqi.db' : path.join(await getDatabasesPath(), 'baqi.db'));
     final database = await openDatabase(
       location,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks (
@@ -28,7 +29,8 @@ class SqliteTaskRepository implements TaskRepository {
             completed_at TEXT,
             scheduled_date TEXT,
             tag TEXT,
-            is_deleted INTEGER NOT NULL DEFAULT 0
+            is_deleted INTEGER NOT NULL DEFAULT 0,
+            time_entries TEXT NOT NULL DEFAULT '[]'
           )
         ''');
         await db.execute(
@@ -45,6 +47,11 @@ class SqliteTaskRepository implements TaskRepository {
           );
           await db.execute(
             "UPDATE tasks SET bucket = 'later', scheduled_date = NULL WHERE bucket = 'evening'",
+          );
+        }
+        if (oldVersion < 4) {
+          await db.execute(
+            "ALTER TABLE tasks ADD COLUMN time_entries TEXT NOT NULL DEFAULT '[]'",
           );
         }
       },
@@ -80,6 +87,16 @@ class SqliteTaskRepository implements TaskRepository {
     scheduledDate: _date(row['scheduled_date']),
     tag: row['tag'] as String?,
     isDeleted: row['is_deleted'] == 1,
+    timeEntries: (jsonDecode(row['time_entries'] as String) as List<dynamic>)
+        .map((value) {
+          final entry = value as Map<String, dynamic>;
+          return TimeEntry(
+            id: entry['id'] as String,
+            minutes: entry['minutes'] as int,
+            createdAt: DateTime.parse(entry['created_at'] as String),
+          );
+        })
+        .toList(),
   );
 
   static DateTime? _date(Object? value) =>
@@ -95,5 +112,16 @@ class SqliteTaskRepository implements TaskRepository {
     'scheduled_date': task.scheduledDate?.toIso8601String(),
     'tag': task.tag,
     'is_deleted': task.isDeleted ? 1 : 0,
+    'time_entries': jsonEncode(
+      task.timeEntries
+          .map(
+            (entry) => {
+              'id': entry.id,
+              'minutes': entry.minutes,
+              'created_at': entry.createdAt.toIso8601String(),
+            },
+          )
+          .toList(),
+    ),
   };
 }

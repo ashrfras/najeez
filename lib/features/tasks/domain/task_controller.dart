@@ -95,6 +95,7 @@ class TaskController extends ChangeNotifier {
   }) async {
     final clean = title.trim();
     if (clean.isEmpty) return;
+    task = _tasks.firstWhere((item) => item.id == task.id);
     final cleanTag = tag?.trim();
     final timestamp = now;
     final bucketChanged = bucket != visibleBucket(task, timestamp);
@@ -113,6 +114,35 @@ class TaskController extends ChangeNotifier {
 
   Future<void> delete(Task task) =>
       _save(task.copyWith(isDeleted: true, updatedAt: now));
+
+  Future<void> addTimeEntry(
+    Task task, {
+    required int hours,
+    required int minutes,
+  }) async {
+    if (hours < 0 || minutes < 0 || minutes > 59 || hours * 60 + minutes <= 0) {
+      throw ArgumentError('Invalid duration');
+    }
+    final current = _tasks.firstWhere((item) => item.id == task.id);
+    final timestamp = now;
+    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
+    final id = bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    await _save(
+      current.copyWith(
+        updatedAt: timestamp,
+        timeEntries: [
+          ...current.timeEntries,
+          TimeEntry(
+            id: id,
+            minutes: hours * 60 + minutes,
+            createdAt: timestamp,
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _save(Task task) async {
     final previous = _tasks;

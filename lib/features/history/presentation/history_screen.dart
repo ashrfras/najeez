@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
+import '../../tasks/domain/task.dart';
 import '../../tasks/domain/task_controller.dart';
 import '../../tasks/domain/task_dates.dart';
 import '../../tasks/presentation/task_widgets.dart';
@@ -103,9 +104,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                   const SizedBox(width: 11),
                                   Expanded(
-                                    child: Text(
-                                      task.title,
-                                      style: AppType.body,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(task.title, style: AppType.body),
+                                        if (task.totalMinutes > 0) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '◷ ${durationLabel(task.totalMinutes)}',
+                                            style: AppType.caption.copyWith(
+                                              color: AppColors.blue,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   Text(

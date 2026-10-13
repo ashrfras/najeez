@@ -18,6 +18,31 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  test(
+    'multiple manual time entries accumulate and survive other task edits',
+    () async {
+      final repository = MemoryRepository();
+      final controller = TaskController(
+        repository,
+        clock: () => DateTime(2026, 10, 13, 9),
+      );
+      await controller.load();
+      await controller.create('مهمة');
+      final original = controller.tasks.single;
+      await controller.addTimeEntry(original, hours: 1, minutes: 30);
+      await controller.addTimeEntry(original, hours: 0, minutes: 45);
+      await controller.update(original, 'مهمة معدلة', bucket: TaskBucket.today);
+      final task = controller.tasks.single;
+      expect(task.totalMinutes, 135);
+      expect(task.timeEntries.map((entry) => entry.minutes), [90, 45]);
+      expect(repository.records[task.id]!.totalMinutes, 135);
+      expect(
+        () => controller.addTimeEntry(task, hours: 0, minutes: 0),
+        throwsArgumentError,
+      );
+    },
+  );
+
   test('create, move, complete, restore and history grouping', () async {
     final repository = MemoryRepository();
     var now = DateTime(2026, 10, 11, 10, 24);

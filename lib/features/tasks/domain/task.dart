@@ -1,5 +1,25 @@
 enum TaskBucket { today, tomorrow, later }
 
+class TimeEntry {
+  const TimeEntry({
+    required this.id,
+    required this.minutes,
+    required this.createdAt,
+  });
+
+  final String id;
+  final int minutes;
+  final DateTime createdAt;
+}
+
+String durationLabel(int minutes) {
+  final hours = minutes ~/ 60;
+  final remainder = minutes % 60;
+  if (hours == 0) return '$remainder د';
+  if (remainder == 0) return '$hours س';
+  return '$hours س $remainder د';
+}
+
 class Task {
   const Task({
     required this.id,
@@ -11,6 +31,7 @@ class Task {
     this.scheduledDate,
     this.tag,
     this.isDeleted = false,
+    this.timeEntries = const [],
   });
 
   final String id;
@@ -22,8 +43,11 @@ class Task {
   final DateTime? scheduledDate;
   final String? tag;
   final bool isDeleted;
+  final List<TimeEntry> timeEntries;
 
   bool get isCompleted => completedAt != null;
+  int get totalMinutes =>
+      timeEntries.fold(0, (sum, entry) => sum + entry.minutes);
 
   Task copyWith({
     String? title,
@@ -36,6 +60,7 @@ class Task {
     bool clearScheduledDate = false,
     bool clearTag = false,
     bool? isDeleted,
+    List<TimeEntry>? timeEntries,
   }) => Task(
     id: id,
     title: title ?? this.title,
@@ -48,5 +73,6 @@ class Task {
         : scheduledDate ?? this.scheduledDate,
     tag: clearTag ? null : tag ?? this.tag,
     isDeleted: isDeleted ?? this.isDeleted,
+    timeEntries: timeEntries ?? this.timeEntries,
   );
 }

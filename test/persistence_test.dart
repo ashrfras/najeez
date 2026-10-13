@@ -23,6 +23,9 @@ void main() {
         completedAt: created,
         tag: 'عمل',
         isDeleted: true,
+        timeEntries: [
+          TimeEntry(id: 'entry-1', minutes: 95, createdAt: created),
+        ],
       ),
     );
     await repository.close();
@@ -32,6 +35,8 @@ void main() {
     expect(task.completedAt, created);
     expect(task.isDeleted, isTrue);
     expect(task.tag, 'عمل');
+    expect(task.totalMinutes, 95);
+    expect(task.timeEntries.single.id, 'entry-1');
     await reopened.close();
     await directory.delete(recursive: true);
   });
@@ -64,6 +69,7 @@ void main() {
     expect(task.title, 'مهمة قديمة');
     expect(task.bucket, TaskBucket.today);
     expect(task.tag, isNull);
+    expect(task.timeEntries, isEmpty);
     await repository.upsertTask(task.copyWith(tag: 'جديد'));
     expect((await repository.getTasks()).single.tag, 'جديد');
     await repository.close();

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -87,77 +88,233 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
     ),
     builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(4),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            const SizedBox(height: 17),
-            Text(
-              task.title,
-              textAlign: TextAlign.center,
-              style: AppType.section,
-            ),
-            const SizedBox(height: 18),
-            if (task.isCompleted)
-              _action(
-                Icons.undo,
-                'إعادة إلى المهام',
-                AppColors.green,
-                () => widget.controller.restore(task),
-              )
-            else ...[
-              _action(
-                Icons.check_circle_outline,
-                'تمت المهمة',
-                AppColors.green,
-                () => widget.controller.complete(task),
-                celebrate: true,
+              const SizedBox(height: 17),
+              Text(
+                task.title,
+                textAlign: TextAlign.center,
+                style: AppType.section,
               ),
+              const SizedBox(height: 8),
+              Text(
+                'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
+                style: AppType.caption,
+              ),
+              const SizedBox(height: 18),
               _action(
-                Icons.adjust,
-                'نقل إلى اليوم',
+                Icons.add_alarm_outlined,
+                'إضافة وقت يدوي',
                 AppColors.blue,
-                () => widget.controller.move(task, TaskBucket.today),
+                () => _addTime(task),
+              ),
+              if (task.timeEntries.isNotEmpty)
+                _action(
+                  Icons.history,
+                  'عرض إدخالات الوقت (${task.timeEntries.length})',
+                  AppColors.blue,
+                  () => _showTimeEntries(task),
+                ),
+              if (task.isCompleted)
+                _action(
+                  Icons.undo,
+                  'إعادة إلى المهام',
+                  AppColors.green,
+                  () => widget.controller.restore(task),
+                )
+              else ...[
+                _action(
+                  Icons.check_circle_outline,
+                  'تمت المهمة',
+                  AppColors.green,
+                  () => widget.controller.complete(task),
+                  celebrate: true,
+                ),
+                _action(
+                  Icons.adjust,
+                  'نقل إلى اليوم',
+                  AppColors.blue,
+                  () => widget.controller.move(task, TaskBucket.today),
+                ),
+                _action(
+                  Icons.calendar_month_outlined,
+                  'نقل إلى غداً',
+                  AppColors.blue,
+                  () => widget.controller.move(task, TaskBucket.tomorrow),
+                ),
+                _action(
+                  Icons.all_inclusive,
+                  'نقل إلى لاحقاً',
+                  AppColors.orange,
+                  () => widget.controller.move(task, TaskBucket.later),
+                ),
+              ],
+              _action(
+                Icons.edit_outlined,
+                'تعديل المهمة',
+                AppColors.muted,
+                () => _edit(task),
               ),
               _action(
-                Icons.calendar_month_outlined,
-                'نقل إلى غداً',
-                AppColors.blue,
-                () => widget.controller.move(task, TaskBucket.tomorrow),
-              ),
-              _action(
-                Icons.all_inclusive,
-                'نقل إلى لاحقاً',
-                AppColors.orange,
-                () => widget.controller.move(task, TaskBucket.later),
+                Icons.delete_outline,
+                'حذف المهمة',
+                AppColors.red,
+                () => widget.controller.delete(task),
               ),
             ],
-            _action(
-              Icons.edit_outlined,
-              'تعديل المهمة',
-              AppColors.muted,
-              () => _edit(task),
-            ),
-            _action(
-              Icons.delete_outline,
-              'حذف المهمة',
-              AppColors.red,
-              () => widget.controller.delete(task),
-            ),
-          ],
+          ),
         ),
       ),
     ),
   );
+
+  Future<void> _showTimeEntries(Task task) => showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppColors.surface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (sheetContext) {
+      final entries = task.timeEntries.reversed.toList();
+      final height = math.min(
+        150.0 + entries.length * 62.0,
+        MediaQuery.sizeOf(sheetContext).height * .7,
+      );
+      return SafeArea(
+        child: SizedBox(
+          height: height,
+          child: Column(
+            children: [
+              const SizedBox(height: 14),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('إدخالات الوقت', style: AppType.section),
+              const SizedBox(height: 5),
+              Text(
+                'المجموع: ${durationLabel(task.totalMinutes)}',
+                style: AppType.caption,
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: AppColors.border),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final entry = entries[index];
+                    return ListTile(
+                      leading: const Icon(
+                        Icons.schedule_outlined,
+                        color: AppColors.blue,
+                      ),
+                      title: Text(
+                        durationLabel(entry.minutes),
+                        style: AppType.body,
+                      ),
+                      subtitle: Text(
+                        '${arabicDate(entry.createdAt)}، ${timeLabel(entry.createdAt)}',
+                        style: AppType.caption,
+                      ),
+                    );
+                  },
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, color: AppColors.border),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  Future<void> _addTime(Task task) async {
+    var hours = '';
+    var minutes = '';
+    final duration = await showDialog<(int, int)>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final h = int.tryParse(hours) ?? 0;
+          final m = int.tryParse(minutes) ?? 0;
+          final valid = (h > 0 || m > 0) && m < 60;
+          return AlertDialog(
+            title: const Text('إضافة وقت مقضي'),
+            content: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    key: const ValueKey('time-hours'),
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (value) => setDialogState(() => hours = value),
+                    decoration: const InputDecoration(labelText: 'الساعات'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    key: const ValueKey('time-minutes'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (value) => setDialogState(() => minutes = value),
+                    decoration: const InputDecoration(
+                      labelText: 'الدقائق',
+                      helperText: '0–59',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () => Navigator.pop(dialogContext, (h, m))
+                    : null,
+                child: const Text('إضافة'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (duration == null) return;
+    await widget.controller.addTimeEntry(
+      task,
+      hours: duration.$1,
+      minutes: duration.$2,
+    );
+    if (mounted) {
+      final current = widget.controller.tasks.firstWhere(
+        (item) => item.id == task.id,
+      );
+      _showActions(current);
+    }
+  }
 
   Widget _action(
     IconData icon,
@@ -407,6 +564,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               icon: Icons.calendar_month_outlined,
                               previewLimit: 2,
                               denseRows: true,
+                              showTime: false,
                               onOpenAll: () => _openList(TaskListKind.tomorrow),
                               onToggle: _toggleTask,
                               onActions: _showActions,
@@ -421,6 +579,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               icon: Icons.all_inclusive,
                               previewLimit: 2,
                               denseRows: true,
+                              showTime: false,
                               onOpenAll: () => _openList(TaskListKind.later),
                               onToggle: _toggleTask,
                               onActions: _showActions,

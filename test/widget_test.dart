@@ -4,6 +4,7 @@ import 'package:baqi/features/tasks/domain/task.dart';
 import 'package:baqi/features/tasks/domain/task_repository.dart';
 import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
 import 'package:baqi/features/tasks/presentation/task_widgets.dart';
+import 'package:baqi/features/history/presentation/history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,6 +24,131 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  testWidgets('history shows total time beneath completed tasks', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 10, 13, 9);
+    final repository = MemoryRepository();
+    repository.tasks.add(
+      Task(
+        id: 'finished',
+        title: 'مهمة مكتملة',
+        bucket: TaskBucket.today,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: now,
+        timeEntries: [
+          TimeEntry(id: 'one', minutes: 50, createdAt: now),
+          TimeEntry(id: 'two', minutes: 40, createdAt: now),
+        ],
+      ),
+    );
+    final controller = TaskController(repository, clock: () => now);
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.tap(find.text('السجل'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HistoryScreen), findsOneWidget);
+    await tester.tap(find.text('الثلاثاء، 13 أكتوبر'));
+    await tester.pumpAndSettle();
+    expect(find.text('مهمة مكتملة'), findsOneWidget);
+    expect(find.text('◷ 1 س 30 د'), findsOneWidget);
+  });
+
+  testWidgets('manual entries appear in task details and list totals', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final controller = TaskController(
+      MemoryRepository(),
+      clock: () => DateTime(2026, 10, 13, 9),
+    );
+    await controller.load();
+    await controller.create('تقرير');
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.tap(find.text('تقرير'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إضافة وقت يدوي'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('time-hours')), '1');
+    await tester.enterText(find.byKey(const ValueKey('time-minutes')), '25');
+    await tester.pump();
+    expect(find.text('25'), findsOneWidget);
+    await tester.tap(find.text('إضافة'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks.single.totalMinutes, 85);
+    expect(find.text('عرض إدخالات الوقت (1)'), findsOneWidget);
+    expect(find.text('1 س 25 د'), findsNothing);
+    await tester.tap(find.text('عرض إدخالات الوقت (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 س 25 د'), findsOneWidget);
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    expect(find.text('◷ 1 س 25 د'), findsOneWidget);
+    await tester.tap(find.text('اليوم').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(TaskListScreen), findsOneWidget);
+    expect(find.text('◷ 1 س 25 د'), findsOneWidget);
+  });
+
+  testWidgets(
+    'tomorrow and later hide preview totals but show them in full lists',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 2600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final now = DateTime(2026, 10, 13, 9);
+      final repository = MemoryRepository();
+      for (final bucket in [TaskBucket.tomorrow, TaskBucket.later]) {
+        repository.tasks.add(
+          Task(
+            id: bucket.name,
+            title: 'مهمة ${bucket.name}',
+            bucket: bucket,
+            createdAt: now,
+            updatedAt: now,
+            scheduledDate: bucket == TaskBucket.tomorrow
+                ? DateTime(2026, 10, 14)
+                : null,
+            timeEntries: [
+              TimeEntry(
+                id: 'entry-${bucket.name}',
+                minutes: 45,
+                createdAt: now,
+              ),
+            ],
+          ),
+        );
+      }
+      final controller = TaskController(repository, clock: () => now);
+      await controller.load();
+      await tester.pumpWidget(
+        BaqiApp(controller: controller, splashDuration: Duration.zero),
+      );
+      expect(find.text('◷ 45 د'), findsNothing);
+      await tester.tap(find.text('غداً').last);
+      await tester.pumpAndSettle();
+      expect(find.text('◷ 45 د'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('لاحقاً').last);
+      await tester.pumpAndSettle();
+      expect(find.text('◷ 45 د'), findsOneWidget);
+    },
+  );
+
   testWidgets('checking a task animates and vibrates before completion', (
     tester,
   ) async {
