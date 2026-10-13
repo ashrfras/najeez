@@ -11,7 +11,7 @@ flutter run
 
 ## Design and data
 
-- The home screen follows `assets/screens.png`. `assets/logo.png` is the source for the نجيز icon and launch artwork; `assets/logo_mark.png` is its transparent header mark. iOS, Android, and web icon assets use the same logo.
+- The home screen follows `assets/screens.png`. `assets/app_icon/icon-1024.png` is the opaque square source for the iOS, Android, and web app icons. iOS applies the rounded corner mask itself. `assets/logo.png` remains the launch artwork, and `assets/logo_mark.png` is the transparent header mark.
 - Tasks are stored in a local SQLite database. The UI uses `TaskController` and the `TaskRepository` interface; `SqliteTaskRepository` is the current local implementation.
 - Every task has a stable ID, creation and update timestamps, an optional completion timestamp, an optional scheduled calendar date, and a soft-deletion flag. Completed history is grouped from stored tasks.
 - Tapping the home capture control opens a focused composer with a bucket choice and an optional tag. Tags can be reused from previous tasks or created inline. Existing databases migrate to version 3 without removing tasks.
