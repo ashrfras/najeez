@@ -15,23 +15,23 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Text(
+                'خلّيك',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
               Image.asset(
                 'assets/logo_mark.png',
                 width: 180,
                 fit: BoxFit.contain,
                 semanticLabel: 'شعار نجيز',
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'خلّيك نَجِيز.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               const Text(
                 'سجّل مهامك بسرعة، وأنجزها ببساطة.',
                 textAlign: TextAlign.center,
