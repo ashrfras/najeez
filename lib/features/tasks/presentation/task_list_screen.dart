@@ -155,6 +155,7 @@ class TaskListScreen extends StatelessWidget {
                                 child: ListView.separated(
                                   itemCount: tasks.length,
                                   itemBuilder: (context, index) => TaskRow(
+                                    key: ValueKey(tasks[index].id),
                                     task: tasks[index],
                                     onToggle: () => onToggle(tasks[index]),
                                     onActions: () => onActions(tasks[index]),

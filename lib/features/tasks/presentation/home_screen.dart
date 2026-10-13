@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
 import '../../history/presentation/history_screen.dart';
@@ -119,6 +120,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 'تمت المهمة',
                 AppColors.green,
                 () => widget.controller.complete(task),
+                celebrate: true,
               ),
               _action(
                 Icons.adjust,
@@ -161,35 +163,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     IconData icon,
     String label,
     Color color,
-    Future<void> Function() callback,
-  ) => Builder(
-    builder: (context) => InkWell(
-      onTap: () async {
-        Navigator.pop(context);
-        try {
-          await callback();
-        } catch (_) {
-          _showError();
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.border, width: .6),
+    Future<void> Function() callback, {
+    bool celebrate = false,
+  }) {
+    var celebrating = false;
+    return StatefulBuilder(
+      builder: (context, setActionState) => InkWell(
+        onTap: () async {
+          if (celebrating) return;
+          if (celebrate) {
+            setActionState(() => celebrating = true);
+            HapticFeedback.mediumImpact();
+            await Future<void>.delayed(const Duration(milliseconds: 550));
+            if (!context.mounted) return;
+          }
+          Navigator.pop(context);
+          try {
+            await callback();
+          } catch (_) {
+            _showError();
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
+          decoration: BoxDecoration(
+            color: celebrating ? AppColors.green.withValues(alpha: .12) : null,
+            border: const Border(
+              bottom: BorderSide(color: AppColors.border, width: .6),
+            ),
+          ),
+          child: Row(
+            children: [
+              AnimatedScale(
+                scale: celebrating ? 1.3 : 1,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOutBack,
+                child: Icon(
+                  celebrating ? Icons.check_circle : icon,
+                  color: color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Text(label, style: AppType.body),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 15),
-            Text(label, style: AppType.body),
-          ],
-        ),
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _edit(Task task) => Navigator.of(context).push(
     MaterialPageRoute<void>(

@@ -5,6 +5,7 @@ import 'package:baqi/features/tasks/domain/task_repository.dart';
 import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
 import 'package:baqi/features/tasks/presentation/task_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class MemoryRepository implements TaskRepository {
@@ -22,6 +23,66 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  testWidgets('checking a task animates and vibrates before completion', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 10, 13);
+    final task = Task(
+      id: 'animated-task',
+      title: 'مهمة للتجربة',
+      bucket: TaskBucket.today,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final feedback = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          feedback.add(call.arguments as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    var toggles = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TaskRow(
+            task: task,
+            onToggle: () => toggles++,
+            onActions: () {},
+          ),
+        ),
+      ),
+    );
+
+    final checkbox = find.descendant(
+      of: find.byType(TaskRow),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    await tester.tap(checkbox.first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(feedback, ['HapticFeedbackType.mediumImpact']);
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(toggles, 0);
+
+    await tester.pumpAndSettle();
+    expect(toggles, 1);
+  });
+
   testWidgets('other sections keep full counts and bounded previews', (
     tester,
   ) async {

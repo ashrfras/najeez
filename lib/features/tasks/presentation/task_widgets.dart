@@ -1,9 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/design.dart';
 import '../../../core/arabic_dates.dart';
 import '../domain/task.dart';
 
-class TaskRow extends StatelessWidget {
+class TaskRow extends StatefulWidget {
   const TaskRow({
     super.key,
     required this.task,
@@ -17,82 +19,177 @@ class TaskRow extends StatelessWidget {
   final bool dense;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onActions,
-    onLongPress: onActions,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 230;
-          return Row(
-            children: [
-              GestureDetector(
-                onTap: onToggle,
-                child: Container(
-                  width: dense ? 18 : 23,
-                  height: dense ? 18 : 23,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: task.isCompleted
-                        ? AppColors.green
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: task.isCompleted
-                          ? AppColors.green
-                          : AppColors.muted,
-                      width: dense ? 1.4 : 1.6,
-                    ),
-                  ),
-                  child: task.isCompleted
-                      ? Icon(
-                          Icons.check,
-                          size: dense ? 13 : 17,
-                          color: Colors.white,
-                        )
-                      : null,
-                ),
-              ),
-              SizedBox(width: dense ? 7 : 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task.title,
-                      maxLines: dense ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.body.copyWith(
-                        color: task.isCompleted
-                            ? AppColors.muted
-                            : AppColors.text,
+  State<TaskRow> createState() => _TaskRowState();
+}
+
+class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
+  late final AnimationController _completion = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+  bool _completing = false;
+
+  Future<void> _toggle() async {
+    if (_completing) return;
+    if (widget.task.isCompleted) {
+      HapticFeedback.selectionClick();
+      widget.onToggle();
+      return;
+    }
+    _completing = true;
+    HapticFeedback.mediumImpact();
+    await _completion.forward(from: 0);
+    if (!mounted) return;
+    _completing = false;
+    _completion.reset();
+    widget.onToggle();
+  }
+
+  @override
+  void dispose() {
+    _completion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _completion,
+    builder: (context, _) {
+      final progress = _completion.value;
+      final checked = widget.task.isCompleted || progress > .12;
+      final fill = widget.task.isCompleted
+          ? AppColors.green
+          : Color.lerp(
+              Colors.transparent,
+              AppColors.green,
+              (progress * 3).clamp(0.0, 1.0),
+            )!;
+      return InkWell(
+        onTap: widget.onActions,
+        onLongPress: widget.onActions,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 230;
+              return Row(
+                children: [
+                  GestureDetector(
+                    onTap: _toggle,
+                    child: SizedBox(
+                      width: widget.dense ? 18 : 23,
+                      height: widget.dense ? 18 : 23,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          if (progress > 0 && progress < 1)
+                            Transform.scale(
+                              scale: 1 + progress * .85,
+                              child: Container(
+                                width: widget.dense ? 18 : 23,
+                                height: widget.dense ? 18 : 23,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.green.withValues(
+                                      alpha: (1 - progress) * .7,
+                                    ),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Transform.scale(
+                            scale: 1 + .16 * math.sin(progress * math.pi),
+                            child: Container(
+                              width: widget.dense ? 18 : 23,
+                              height: widget.dense ? 18 : 23,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: fill,
+                                border: Border.all(
+                                  color: checked
+                                      ? AppColors.green
+                                      : AppColors.muted,
+                                  width: widget.dense ? 1.4 : 1.6,
+                                ),
+                              ),
+                              child: checked
+                                  ? Transform.scale(
+                                      scale: widget.task.isCompleted
+                                          ? 1
+                                          : Curves.elasticOut.transform(
+                                              ((progress - .12) / .7).clamp(
+                                                0.0,
+                                                1.0,
+                                              ),
+                                            ),
+                                      child: Icon(
+                                        Icons.check,
+                                        size: widget.dense ? 13 : 17,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (compact && task.tag != null) ...[
-                      const SizedBox(height: 5),
-                      _TagBadge(label: task.tag!),
-                    ],
+                  ),
+                  SizedBox(width: widget.dense ? 7 : 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.task.title,
+                          maxLines: widget.dense ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.body.copyWith(
+                            color: Color.lerp(
+                              widget.task.isCompleted
+                                  ? AppColors.muted
+                                  : AppColors.text,
+                              AppColors.muted,
+                              progress,
+                            ),
+                            decoration: progress > .6
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        if (compact && widget.task.tag != null) ...[
+                          const SizedBox(height: 5),
+                          _TagBadge(label: widget.task.tag!),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (!compact && widget.task.tag != null) ...[
+                    const SizedBox(width: 7),
+                    _TagBadge(label: widget.task.tag!),
                   ],
-                ),
-              ),
-              if (!compact && task.tag != null) ...[
-                const SizedBox(width: 7),
-                _TagBadge(label: task.tag!),
-              ],
-              if (task.completedAt != null) ...[
-                Text(timeLabel(task.completedAt!), style: AppType.caption),
-                const SizedBox(width: 9),
-              ],
-              Icon(
-                Icons.more_horiz,
-                size: 20,
-                color: AppColors.muted.withValues(alpha: .8),
-              ),
-            ],
-          );
-        },
-      ),
-    ),
+                  if (widget.task.completedAt != null) ...[
+                    Text(
+                      timeLabel(widget.task.completedAt!),
+                      style: AppType.caption,
+                    ),
+                    const SizedBox(width: 9),
+                  ],
+                  Icon(
+                    Icons.more_horiz,
+                    size: 20,
+                    color: AppColors.muted.withValues(alpha: .8),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -210,6 +307,7 @@ class TaskSection extends StatelessWidget {
                 color: AppColors.border,
               ),
             TaskRow(
+              key: ValueKey(tasks[i].id),
               task: tasks[i],
               dense: denseRows,
               onToggle: () => onToggle(tasks[i]),
@@ -233,7 +331,7 @@ class TaskSection extends StatelessWidget {
                 child: Center(
                   child: Text(
                     'عرض $remainingCount مهام أخرى',
-                    style: AppType.body.copyWith(color: accent),
+                    style: AppType.body.copyWith(color: accent, fontSize: 12),
                   ),
                 ),
               ),
