@@ -1,4 +1,5 @@
 import 'package:baqi/main.dart';
+import 'package:baqi/core/design.dart';
 import 'package:baqi/features/tasks/domain/task_controller.dart';
 import 'package:baqi/features/tasks/domain/task.dart';
 import 'package:baqi/features/tasks/domain/task_repository.dart';
@@ -55,6 +56,101 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('مهمة مكتملة'), findsOneWidget);
     expect(find.text('◷ 1 س 30 د'), findsOneWidget);
+    expect(find.text('09:00'), findsOneWidget);
+    await tester.tap(find.text('مهمة مكتملة'));
+    await tester.pumpAndSettle();
+    expect(find.text('اكتملت: الثلاثاء، 13 أكتوبر، 09:00'), findsOneWidget);
+  });
+
+  testWidgets('completed today shows completion time only in details', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 2600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final completedAt = DateTime(2026, 10, 13, 9, 37);
+    final repository = MemoryRepository();
+    repository.tasks.add(
+      Task(
+        id: 'finished',
+        title: 'مهمة مكتملة',
+        bucket: TaskBucket.today,
+        createdAt: completedAt,
+        updatedAt: completedAt,
+        completedAt: completedAt,
+      ),
+    );
+    final controller = TaskController(repository, clock: () => completedAt);
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    expect(find.text('09:37'), findsNothing);
+    await tester.tap(find.text('تم اليوم').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(TaskListScreen), findsOneWidget);
+    expect(find.text('09:37'), findsNothing);
+    await tester.tap(find.text('مهمة مكتملة'));
+    await tester.pumpAndSettle();
+    expect(find.text('اكتملت: الثلاثاء، 13 أكتوبر، 09:37'), findsOneWidget);
+  });
+
+  testWidgets('time entries can be deleted from the entries sheet', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 10, 13, 9);
+    final repository = MemoryRepository();
+    repository.tasks.add(
+      Task(
+        id: 'timed',
+        title: 'مهمة موقّتة',
+        bucket: TaskBucket.today,
+        createdAt: now,
+        updatedAt: now,
+        timeEntries: [
+          TimeEntry(id: 'first', minutes: 30, createdAt: now),
+          TimeEntry(id: 'second', minutes: 45, createdAt: now),
+        ],
+      ),
+    );
+    final controller = TaskController(repository, clock: () => now);
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.tap(find.text('مهمة موقّتة'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عرض إدخالات الوقت (2)'));
+    await tester.pumpAndSettle();
+    final deleteIcon = tester.widget<IconButton>(
+      find.byKey(const ValueKey('delete-time-entry-second')),
+    );
+    expect(deleteIcon.color, AppColors.muted);
+    expect(deleteIcon.iconSize, 18);
+    await tester.tap(find.byKey(const ValueKey('delete-time-entry-second')));
+    await tester.pumpAndSettle();
+    expect(find.text('حذف إدخال الوقت؟'), findsOneWidget);
+    expect(controller.tasks.single.totalMinutes, 75);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks.single.totalMinutes, 75);
+    await tester.tap(find.byKey(const ValueKey('delete-time-entry-second')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('حذف'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks.single.totalMinutes, 30);
+    expect(find.text('المجموع: 30 د'), findsOneWidget);
+    expect(find.text('45 د'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('delete-time-entry-first')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('حذف'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks.single.timeEntries, isEmpty);
+    expect(find.text('المجموع: 0 د'), findsOneWidget);
+    expect(find.text('لا توجد إدخالات وقت'), findsOneWidget);
   });
 
   testWidgets('manual entries appear in task details and list totals', (

@@ -43,6 +43,26 @@ void main() {
     },
   );
 
+  test('removing one time entry persists the remaining entries', () async {
+    final repository = MemoryRepository();
+    final controller = TaskController(
+      repository,
+      clock: () => DateTime(2026, 10, 13, 9),
+    );
+    await controller.load();
+    await controller.create('مهمة');
+    final original = controller.tasks.single;
+    await controller.addTimeEntry(original, hours: 1, minutes: 0);
+    await controller.addTimeEntry(original, hours: 0, minutes: 20);
+    final beforeDelete = controller.tasks.single;
+    final deletedId = beforeDelete.timeEntries.first.id;
+    await controller.removeTimeEntry(original, deletedId);
+    final remaining = controller.tasks.single;
+    expect(remaining.timeEntries.map((entry) => entry.minutes), [20]);
+    expect(remaining.totalMinutes, 20);
+    expect(repository.records[remaining.id]!.timeEntries.single.minutes, 20);
+  });
+
   test('create, move, complete, restore and history grouping', () async {
     final repository = MemoryRepository();
     var now = DateTime(2026, 10, 11, 10, 24);

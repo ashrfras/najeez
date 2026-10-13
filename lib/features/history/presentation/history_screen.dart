@@ -7,14 +7,36 @@ import '../../tasks/domain/task_dates.dart';
 import '../../tasks/presentation/task_widgets.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.controller});
+  const HistoryScreen({
+    super.key,
+    required this.controller,
+    required this.onActions,
+  });
   final TaskController controller;
+  final void Function(Task) onActions;
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
   DateTime? expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_refresh);
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_refresh);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final days = completedByDay(widget.controller.tasks).entries.toList()
@@ -90,43 +112,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         if (expanded == day.key) ...[
                           const Divider(height: 1, color: AppColors.border),
                           for (final task in day.value)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 11,
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    size: 19,
-                                    color: AppColors.green,
-                                  ),
-                                  const SizedBox(width: 11),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(task.title, style: AppType.body),
-                                        if (task.totalMinutes > 0) ...[
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '◷ ${durationLabel(task.totalMinutes)}',
-                                            style: AppType.caption.copyWith(
-                                              color: AppColors.blue,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
+                            InkWell(
+                              onTap: () => widget.onActions(task),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 11,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 19,
+                                      color: AppColors.green,
                                     ),
-                                  ),
-                                  Text(
-                                    timeLabel(task.completedAt!),
-                                    style: AppType.caption,
-                                  ),
-                                ],
+                                    const SizedBox(width: 11),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(task.title, style: AppType.body),
+                                          if (task.totalMinutes > 0) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '◷ ${durationLabel(task.totalMinutes)}',
+                                              style: AppType.caption.copyWith(
+                                                color: AppColors.blue,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      timeLabel(task.completedAt!),
+                                      style: AppType.caption,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                         ],

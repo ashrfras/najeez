@@ -113,6 +113,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
                 style: AppType.caption,
               ),
+              if (task.completedAt != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}',
+                  style: AppType.caption,
+                ),
+              ],
               const SizedBox(height: 18),
               _action(
                 Icons.add_alarm_outlined,
@@ -188,64 +195,121 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
     ),
     builder: (sheetContext) {
-      final entries = task.timeEntries.reversed.toList();
       final height = math.min(
-        150.0 + entries.length * 62.0,
+        150.0 + task.timeEntries.length * 62.0,
         MediaQuery.sizeOf(sheetContext).height * .7,
       );
       return SafeArea(
         child: SizedBox(
           height: height,
-          child: Column(
-            children: [
-              const SizedBox(height: 14),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('إدخالات الوقت', style: AppType.section),
-              const SizedBox(height: 5),
-              Text(
-                'المجموع: ${durationLabel(task.totalMinutes)}',
-                style: AppType.caption,
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1, color: AppColors.border),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: entries.length,
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    return ListTile(
-                      leading: const Icon(
-                        Icons.schedule_outlined,
-                        color: AppColors.blue,
-                      ),
-                      title: Text(
-                        durationLabel(entry.minutes),
-                        style: AppType.body,
-                      ),
-                      subtitle: Text(
-                        '${arabicDate(entry.createdAt)}، ${timeLabel(entry.createdAt)}',
-                        style: AppType.caption,
-                      ),
-                    );
-                  },
-                  separatorBuilder: (_, _) =>
-                      const Divider(height: 1, color: AppColors.border),
-                ),
-              ),
-            ],
+          child: AnimatedBuilder(
+            animation: widget.controller,
+            builder: (context, _) {
+              final current = widget.controller.tasks.firstWhere(
+                (item) => item.id == task.id,
+              );
+              final entries = current.timeEntries.reversed.toList();
+              return Column(
+                children: [
+                  const SizedBox(height: 14),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('إدخالات الوقت', style: AppType.section),
+                  const SizedBox(height: 5),
+                  Text(
+                    'المجموع: ${durationLabel(current.totalMinutes)}',
+                    style: AppType.caption,
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppColors.border),
+                  Expanded(
+                    child: entries.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'لا توجد إدخالات وقت',
+                              style: AppType.caption,
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: entries.length,
+                            itemBuilder: (context, index) {
+                              final entry = entries[index];
+                              return ListTile(
+                                leading: const Icon(
+                                  Icons.schedule_outlined,
+                                  color: AppColors.blue,
+                                ),
+                                title: Text(
+                                  durationLabel(entry.minutes),
+                                  style: AppType.body,
+                                ),
+                                subtitle: Text(
+                                  '${arabicDate(entry.createdAt)}، ${timeLabel(entry.createdAt)}',
+                                  style: AppType.caption,
+                                ),
+                                trailing: IconButton(
+                                  key: ValueKey(
+                                    'delete-time-entry-${entry.id}',
+                                  ),
+                                  icon: const Icon(Icons.delete_outline),
+                                  iconSize: 18,
+                                  color: AppColors.muted,
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'حذف إدخال الوقت',
+                                  onPressed: () =>
+                                      _confirmRemoveTimeEntry(current, entry),
+                                ),
+                              );
+                            },
+                            separatorBuilder: (_, _) => const Divider(
+                              height: 1,
+                              color: AppColors.border,
+                            ),
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       );
     },
   );
+
+  Future<void> _confirmRemoveTimeEntry(Task task, TimeEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف إدخال الوقت؟'),
+        content: Text(
+          'هل تريد حذف إدخال ${durationLabel(entry.minutes)} من هذه المهمة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await widget.controller.removeTimeEntry(task, entry.id);
+    } catch (_) {
+      _showError();
+    }
+  }
 
   Future<void> _addTime(Task task) async {
     var hours = '';
@@ -450,6 +514,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     MaterialPageRoute(
                                       builder: (_) => HistoryScreen(
                                         controller: widget.controller,
+                                        onActions: _showActions,
                                       ),
                                     ),
                                   ),

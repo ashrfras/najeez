@@ -144,6 +144,18 @@ class TaskController extends ChangeNotifier {
     );
   }
 
+  Future<void> removeTimeEntry(Task task, String entryId) async {
+    final current = _tasks.firstWhere((item) => item.id == task.id);
+    await _save(
+      current.copyWith(
+        updatedAt: now,
+        timeEntries: current.timeEntries
+            .where((entry) => entry.id != entryId)
+            .toList(),
+      ),
+    );
+  }
+
   Future<void> _save(Task task) async {
     final previous = _tasks;
     _tasks = [task, ..._tasks.where((item) => item.id != task.id)];

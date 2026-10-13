@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design.dart';
-import '../../../core/arabic_dates.dart';
 import '../domain/task.dart';
 
 class TaskRow extends StatefulWidget {
@@ -189,13 +188,6 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                   if (!compact && widget.task.tag != null) ...[
                     const SizedBox(width: 7),
                     _TagBadge(label: widget.task.tag!),
-                  ],
-                  if (widget.task.completedAt != null) ...[
-                    Text(
-                      timeLabel(widget.task.completedAt!),
-                      style: AppType.caption,
-                    ),
-                    const SizedBox(width: 9),
                   ],
                   Icon(
                     Icons.more_horiz,
