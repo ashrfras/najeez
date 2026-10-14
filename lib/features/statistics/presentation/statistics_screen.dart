@@ -6,8 +6,8 @@ import '../../tasks/domain/task_controller.dart';
 import '../../tasks/domain/task_dates.dart';
 import '../../tasks/presentation/task_widgets.dart';
 
-class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({
+class StatisticsScreen extends StatefulWidget {
+  const StatisticsScreen({
     super.key,
     required this.controller,
     required this.onActions,
@@ -15,10 +15,10 @@ class HistoryScreen extends StatefulWidget {
   final TaskController controller;
   final void Function(Task) onActions;
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _StatisticsScreenState extends State<StatisticsScreen> {
   DateTime? expanded;
 
   @override
@@ -56,12 +56,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                     ),
                     const SizedBox(width: 5),
-                    const Text('السجل', style: AppType.title),
+                    const Flexible(
+                      child: Text(
+                        'الإحصاءات',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.title,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                const Text('ما أنجزته، يوماً بعد يوم', style: AppType.caption),
-                const SizedBox(height: 27),
+                const SizedBox(height: 28),
                 if (days.isEmpty)
                   Container(
                     padding: const EdgeInsets.all(25),

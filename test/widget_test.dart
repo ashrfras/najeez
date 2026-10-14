@@ -5,7 +5,8 @@ import 'package:baqi/features/tasks/domain/task.dart';
 import 'package:baqi/features/tasks/domain/task_repository.dart';
 import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
 import 'package:baqi/features/tasks/presentation/task_widgets.dart';
-import 'package:baqi/features/history/presentation/history_screen.dart';
+import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
+import 'package:baqi/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,7 +76,7 @@ void main() {
     expect(actions, 1);
   });
 
-  testWidgets('history shows total time beneath completed tasks', (
+  testWidgets('statistics shows total time beneath completed tasks', (
     tester,
   ) async {
     final now = DateTime(2026, 10, 13, 9);
@@ -99,9 +100,10 @@ void main() {
     await tester.pumpWidget(
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
-    await tester.tap(find.text('السجل'));
+    await tester.tap(find.byIcon(Icons.bar_chart_rounded));
     await tester.pumpAndSettle();
-    expect(find.byType(HistoryScreen), findsOneWidget);
+    expect(find.byType(StatisticsScreen), findsOneWidget);
+    expect(find.text('الإحصاءات'), findsOneWidget);
     await tester.tap(find.text('الثلاثاء، 13 أكتوبر'));
     await tester.pumpAndSettle();
     expect(find.text('مهمة مكتملة'), findsOneWidget);
@@ -110,6 +112,35 @@ void main() {
     await tester.tap(find.text('مهمة مكتملة'));
     await tester.pumpAndSettle();
     expect(find.text('اكتملت: الثلاثاء، 13 أكتوبر، 09:00'), findsOneWidget);
+  });
+
+  testWidgets('settings shows the three planned groups', (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final controller = TaskController(MemoryRepository());
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    expect(find.text('السجل'), findsNothing);
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    for (final label in [
+      'منطق اليوم التالي',
+      'الحفظ الاحتياطي',
+      'سياسة الخصوصية',
+      'عن التطبيق',
+      'إعادة الضبط',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('قريباً'), findsNWidgets(5));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('completed today shows completion time only in details', (

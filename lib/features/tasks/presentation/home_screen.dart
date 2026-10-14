@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
-import '../../history/presentation/history_screen.dart';
+import '../../statistics/presentation/statistics_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
 import 'task_composer_screen.dart';
@@ -510,6 +511,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
   );
 
+  void _openStatistics() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => StatisticsScreen(
+        controller: widget.controller,
+        onActions: _showActions,
+      ),
+    ),
+  );
+
+  void _openSettings() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+
   @override
   Widget build(BuildContext context) {
     final now = widget.controller.now;
@@ -556,35 +570,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Expanded(
                               child: Align(
                                 alignment: Alignment.centerLeft,
-                                child: GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HistoryScreen(
-                                        controller: widget.controller,
-                                        onActions: _showActions,
-                                      ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _HeaderIcon(
+                                      icon: Icons.bar_chart_rounded,
+                                      tooltip: 'الإحصاءات',
+                                      onTap: _openStatistics,
                                     ),
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 5,
+                                    const SizedBox(width: 6),
+                                    _HeaderIcon(
+                                      icon: Icons.settings_outlined,
+                                      tooltip: 'الإعدادات',
+                                      onTap: _openSettings,
                                     ),
-                                    decoration: panel(radius: 12),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.history,
-                                          size: 16,
-                                          color: AppColors.muted,
-                                        ),
-                                        SizedBox(width: 5),
-                                        Text('السجل', style: AppType.caption),
-                                      ],
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -721,6 +721,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: tooltip,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: panel(radius: 12),
+        child: Icon(icon, size: 20, color: AppColors.muted),
+      ),
+    ),
+  );
 }
 
 class _Stat extends StatelessWidget {
