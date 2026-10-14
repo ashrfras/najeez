@@ -25,6 +25,56 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  testWidgets('task row places time before tag without an actions icon', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 10, 13);
+    var actions = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: TaskRow(
+              task: Task(
+                id: 'tagged-task',
+                title: 'مهمة للتجربة',
+                bucket: TaskBucket.today,
+                createdAt: now,
+                updatedAt: now,
+                tag: 'عمل',
+                timeEntries: [
+                  TimeEntry(id: 'entry', minutes: 75, createdAt: now),
+                ],
+              ),
+              onToggle: () {},
+              onActions: () => actions++,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final time = find.text('◷ 1 س 15 د');
+    final tag = find.text('عمل');
+    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(
+      (tester.getCenter(time).dy - tester.getCenter(tag).dy).abs(),
+      lessThan(8),
+    );
+    expect(tester.getCenter(time).dx, greaterThan(tester.getCenter(tag).dx));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('مهمة للتجربة'));
+    expect(actions, 1);
+  });
+
   testWidgets('history shows total time beneath completed tasks', (
     tester,
   ) async {
