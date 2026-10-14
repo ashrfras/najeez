@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/arabic_dates.dart';
@@ -123,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 18),
               _action(
                 Icons.add_alarm_outlined,
-                'إضافة وقت يدوي',
+                'إضافة وقت',
                 AppColors.blue,
                 () => _addTime(task),
               ),
@@ -312,43 +313,90 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _addTime(Task task) async {
-    var hours = '';
-    var minutes = '';
+    var hours = 0;
+    var minutes = 0;
     final duration = await showDialog<(int, int)>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final h = int.tryParse(hours) ?? 0;
-          final m = int.tryParse(minutes) ?? 0;
-          final valid = (h > 0 || m > 0) && m < 60;
           return AlertDialog(
             title: const Text('إضافة وقت مقضي'),
-            content: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    key: const ValueKey('time-hours'),
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (value) => setDialogState(() => hours = value),
-                    decoration: const InputDecoration(labelText: 'الساعات'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    key: const ValueKey('time-minutes'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (value) => setDialogState(() => minutes = value),
-                    decoration: const InputDecoration(
-                      labelText: 'الدقائق',
-                      helperText: '0–59',
+            content: SizedBox(
+              height: 190,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Text('الساعات'),
+                        Expanded(
+                          child: CupertinoPicker(
+                            key: const ValueKey('time-hours'),
+                            itemExtent: 38,
+                            backgroundColor: Colors.transparent,
+                            selectionOverlay:
+                                CupertinoPickerDefaultSelectionOverlay(
+                                  background: AppColors.blue.withValues(
+                                    alpha: .12,
+                                  ),
+                                ),
+                            onSelectedItemChanged: (value) =>
+                                setDialogState(() => hours = value),
+                            children: [
+                              for (var hour = 0; hour < 100; hour++)
+                                Center(
+                                  child: Text(
+                                    '$hour',
+                                    style: AppType.body.copyWith(
+                                      color: AppColors.text,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const Text('الدقائق'),
+                        Expanded(
+                          child: CupertinoPicker(
+                            key: const ValueKey('time-minutes'),
+                            itemExtent: 38,
+                            looping: true,
+                            backgroundColor: Colors.transparent,
+                            selectionOverlay:
+                                CupertinoPickerDefaultSelectionOverlay(
+                                  background: AppColors.blue.withValues(
+                                    alpha: .12,
+                                  ),
+                                ),
+                            onSelectedItemChanged: (value) =>
+                                setDialogState(() => minutes = value),
+                            children: [
+                              for (var minute = 0; minute < 60; minute++)
+                                Center(
+                                  child: Text(
+                                    '$minute',
+                                    style: AppType.body.copyWith(
+                                      color: AppColors.text,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -356,8 +404,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: const Text('إلغاء'),
               ),
               FilledButton(
-                onPressed: valid
-                    ? () => Navigator.pop(dialogContext, (h, m))
+                onPressed: hours > 0 || minutes > 0
+                    ? () => Navigator.pop(dialogContext, (hours, minutes))
                     : null,
                 child: const Text('إضافة'),
               ),

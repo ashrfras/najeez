@@ -203,7 +203,7 @@ void main() {
     expect(find.text('لا توجد إدخالات وقت'), findsOneWidget);
   });
 
-  testWidgets('manual entries appear in task details and list totals', (
+  testWidgets('wheel-selected time appears in task details and list totals', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1200, 2600);
@@ -223,12 +223,42 @@ void main() {
     );
     await tester.tap(find.text('تقرير'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('إضافة وقت يدوي'));
+    await tester.tap(find.text('إضافة وقت'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('time-hours')), '1');
-    await tester.enterText(find.byKey(const ValueKey('time-minutes')), '25');
+    final hoursPicker = find.byKey(const ValueKey('time-hours'));
+    final minutesPicker = find.byKey(const ValueKey('time-minutes'));
+    expect(find.byType(TextFormField), findsNothing);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'إضافة'))
+          .onPressed,
+      isNull,
+    );
+    tester
+        .state<ScrollableState>(
+          find.descendant(
+            of: hoursPicker,
+            matching: find.byWidgetPredicate((widget) => widget is Scrollable),
+          ),
+        )
+        .position
+        .jumpTo(38);
+    tester
+        .state<ScrollableState>(
+          find.descendant(
+            of: minutesPicker,
+            matching: find.byWidgetPredicate((widget) => widget is Scrollable),
+          ),
+        )
+        .position
+        .jumpTo(25 * 38);
     await tester.pump();
-    expect(find.text('25'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'إضافة'))
+          .onPressed,
+      isNotNull,
+    );
     await tester.tap(find.text('إضافة'));
     await tester.pumpAndSettle();
     expect(controller.tasks.single.totalMinutes, 85);
