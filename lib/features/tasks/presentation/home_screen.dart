@@ -9,6 +9,7 @@ import '../../statistics/presentation/statistics_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
+import '../domain/work_time_stats.dart';
 import 'task_composer_screen.dart';
 import 'task_list_screen.dart';
 import 'task_widgets.dart';
@@ -28,23 +29,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_refresh);
-    _scheduleFiveAm();
+    _scheduleDayRefresh();
   }
 
   void _refresh() {
     if (mounted) setState(() {});
   }
 
-  void _scheduleFiveAm() {
+  void _scheduleDayRefresh() {
     _dayTimer?.cancel();
     final now = DateTime.now();
     final todayAtFive = DateTime(now.year, now.month, now.day, 5);
     final nextRefresh = now.isBefore(todayAtFive)
         ? todayAtFive
         : DateTime(now.year, now.month, now.day + 1, 5);
-    _dayTimer = Timer(nextRefresh.difference(now), () {
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    final refreshAt = nextMidnight.isBefore(nextRefresh)
+        ? nextMidnight
+        : nextRefresh;
+    _dayTimer = Timer(refreshAt.difference(now), () {
       widget.controller.refreshDay();
-      _scheduleFiveAm();
+      _scheduleDayRefresh();
     });
   }
 
@@ -52,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       widget.controller.refreshDay();
-      _scheduleFiveAm();
+      _scheduleDayRefresh();
     }
   }
 
@@ -531,6 +536,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final tomorrow = TaskListKind.tomorrow.select(widget.controller);
     final later = TaskListKind.later.select(widget.controller);
     final completed = TaskListKind.completedToday.select(widget.controller);
+    final workTime = workTimeStats(widget.controller.tasks, now);
 
     return Scaffold(
       body: SafeArea(
@@ -595,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       Row(
                         children: [
                           _Stat(
-                            count: completed.length,
+                            value: '${completed.length}',
                             label: 'تم اليوم',
                             color: AppColors.green,
                             icon: Icons.check,
@@ -603,19 +609,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           const SizedBox(width: 8),
                           _Stat(
-                            count: tomorrow.length,
-                            label: 'غداً',
+                            value: compactDurationLabel(workTime.todayMinutes),
+                            label: 'عمل اليوم',
                             color: AppColors.blue,
-                            icon: Icons.calendar_month_outlined,
-                            onTap: () => _openList(TaskListKind.tomorrow),
+                            icon: Icons.schedule_outlined,
+                            onTap: _openStatistics,
                           ),
                           const SizedBox(width: 8),
                           _Stat(
-                            count: later.length,
-                            label: 'لاحقاً',
+                            value: workTime.averageMinutes == null
+                                ? '-'
+                                : compactDurationLabel(
+                                    workTime.averageMinutes!,
+                                  ),
+                            label: 'متوسط 7 أيام',
                             color: AppColors.orange,
-                            icon: Icons.all_inclusive,
-                            onTap: () => _openList(TaskListKind.later),
+                            icon: Icons.trending_up_rounded,
+                            onTap: _openStatistics,
                           ),
                         ],
                       ),
@@ -752,13 +762,13 @@ class _HeaderIcon extends StatelessWidget {
 
 class _Stat extends StatelessWidget {
   const _Stat({
-    required this.count,
+    required this.value,
     required this.label,
     required this.color,
     required this.icon,
     required this.onTap,
   });
-  final int count;
+  final String value;
   final String label;
   final Color color;
   final IconData icon;
@@ -769,41 +779,45 @@ class _Stat extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.card),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: panel(),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: .15),
+            SizedBox(
+              width: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 18,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              child: Icon(icon, color: color, size: 21),
             ),
-            const SizedBox(width: 7),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$count',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 22,
-                      height: 1,
-                      fontWeight: FontWeight.w800,
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(icon, color: color, size: 13),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: AppType.caption.copyWith(fontSize: 10),
                     ),
                   ),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.caption.copyWith(fontSize: 10),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

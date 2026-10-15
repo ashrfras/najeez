@@ -66,6 +66,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('اليوم'), findsOneWidget);
+    expect(find.text('عمل اليوم'), findsOneWidget);
+    expect(find.text('0د'), findsOneWidget);
+    expect(find.text('متوسط 7 أيام'), findsOneWidget);
+    expect(find.text('-'), findsOneWidget);
     expect(tester.getCenter(find.byType(Image)).dx, closeTo(195, 0.5));
     expect(tester.takeException(), isNull);
   });

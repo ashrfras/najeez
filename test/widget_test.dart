@@ -26,6 +26,65 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  testWidgets('home cards show today work and the seven-day logged average', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 10, 15, 12);
+    final repository = MemoryRepository();
+    repository.tasks.addAll([
+      Task(
+        id: 'open',
+        title: 'مهمة جارية',
+        bucket: TaskBucket.today,
+        createdAt: DateTime(2026, 10, 1),
+        updatedAt: now,
+        timeEntries: [TimeEntry(id: 'today', minutes: 260, createdAt: now)],
+      ),
+      Task(
+        id: 'done',
+        title: 'مهمة مكتملة',
+        bucket: TaskBucket.today,
+        createdAt: DateTime(2026, 10, 1),
+        updatedAt: now,
+        completedAt: now,
+        timeEntries: [
+          TimeEntry(
+            id: 'earlier',
+            minutes: 100,
+            createdAt: DateTime(2026, 10, 14),
+          ),
+        ],
+      ),
+    ]);
+    final controller = TaskController(repository, clock: () => now);
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+
+    expect(find.text('عمل اليوم'), findsOneWidget);
+    expect(find.text('4س 20د'), findsOneWidget);
+    expect(find.text('متوسط 7 أيام'), findsOneWidget);
+    expect(find.text('1س 40د'), findsOneWidget);
+    expect(find.text('1'), findsWidgets);
+    expect(
+      tester.getCenter(find.text('تم اليوم').first).dx,
+      greaterThan(tester.getCenter(find.text('عمل اليوم')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('عمل اليوم')).dx,
+      greaterThan(tester.getCenter(find.text('متوسط 7 أيام')).dx),
+    );
+    expect(tester.getRect(find.text('4س 20د')).width, lessThan(80));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('task row places time before tag without an actions icon', (
     tester,
   ) async {
