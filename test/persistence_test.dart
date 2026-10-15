@@ -13,6 +13,8 @@ void main() {
     final dbPath = '${directory.path}/tasks.db';
     final created = DateTime(2026, 10, 11, 10, 24);
     final repository = await SqliteTaskRepository.open(databasePath: dbPath);
+    expect(await repository.getLogicalDayStartMinutes(), 0);
+    await repository.setLogicalDayStartMinutes(240);
     await repository.upsertTask(
       Task(
         id: 'stable-id',
@@ -31,6 +33,7 @@ void main() {
     await repository.close();
     final reopened = await SqliteTaskRepository.open(databasePath: dbPath);
     final task = (await reopened.getTasks()).single;
+    expect(await reopened.getLogicalDayStartMinutes(), 240);
     expect(task.id, 'stable-id');
     expect(task.completedAt, created);
     expect(task.isDeleted, isTrue);
@@ -70,6 +73,7 @@ void main() {
     expect(task.bucket, TaskBucket.today);
     expect(task.tag, isNull);
     expect(task.timeEntries, isEmpty);
+    expect(await repository.getLogicalDayStartMinutes(), 0);
     await repository.upsertTask(task.copyWith(tag: 'جديد'));
     expect((await repository.getTasks()).single.tag, 'جديد');
     await repository.close();

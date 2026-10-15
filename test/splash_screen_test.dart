@@ -5,7 +5,7 @@ import 'package:baqi/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _EmptyRepository implements TaskRepository {
+class _EmptyRepository extends TaskRepository {
   @override
   Future<List<Task>> getTasks() async => [];
 

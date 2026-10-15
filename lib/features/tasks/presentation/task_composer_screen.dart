@@ -35,7 +35,11 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
     super.initState();
     _bucket = widget.task == null
         ? widget.initialBucket
-        : visibleBucket(widget.task!, widget.controller.now);
+        : visibleBucket(
+            widget.task!,
+            widget.controller.now,
+            widget.controller.logicalDay,
+          );
     _title.text = widget.task?.title ?? '';
     _selectedTag = widget.task?.tag;
   }

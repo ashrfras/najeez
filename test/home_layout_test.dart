@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class VisualRepository implements TaskRepository {
+class VisualRepository extends TaskRepository {
   @override
   Future<List<Task>> getTasks() async {
     final now = DateTime(2026, 10, 11, 10, 24);

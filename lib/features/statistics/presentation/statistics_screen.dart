@@ -39,8 +39,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final days = completedByDay(widget.controller.tasks).entries.toList()
-      ..sort((a, b) => b.key.compareTo(a.key));
+    final days = completedByDay(
+      widget.controller.tasks,
+      widget.controller.logicalDay,
+    ).entries.toList()..sort((a, b) => b.key.compareTo(a.key));
     return Scaffold(
       body: SafeArea(
         child: Center(

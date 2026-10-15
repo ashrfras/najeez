@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:baqi/main.dart';
 import 'package:baqi/core/design.dart';
 import 'package:baqi/features/tasks/domain/task_controller.dart';
@@ -7,11 +9,12 @@ import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
 import 'package:baqi/features/tasks/presentation/task_widgets.dart';
 import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
 import 'package:baqi/features/settings/presentation/settings_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class MemoryRepository implements TaskRepository {
+class MemoryRepository extends TaskRepository {
   final tasks = <Task>[];
   @override
   Future<List<Task>> getTasks() async => tasks;
@@ -25,7 +28,71 @@ class MemoryRepository implements TaskRepository {
   Future<void> close() async {}
 }
 
+class SlowSettingsRepository extends MemoryRepository {
+  final saveGate = Completer<void>();
+
+  @override
+  Future<void> setLogicalDayStartMinutes(int minutes) => saveGate.future;
+}
+
 void main() {
+  testWidgets('logical day picker shows progress while saving', (tester) async {
+    final repository = SlowSettingsRepository();
+    final controller = TaskController(repository);
+    await controller.load();
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('اليوم المنطقي'));
+    await tester.pumpAndSettle();
+    final picker = tester.widget<CupertinoPicker>(
+      find.byKey(const ValueKey('logical-day-hour-picker')),
+    );
+    picker.scrollController!.jumpToItem(4);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('حفظ'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('إلغاء'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'إلغاء'))
+          .onPressed,
+      isNull,
+    );
+    expect(controller.logicalDay.startMinutes, 0);
+    repository.saveGate.complete();
+    await tester.pumpAndSettle();
+    expect(controller.logicalDay.startMinutes, 240);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('open home advances at the configured day boundary', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 15, 3, 59, 59);
+    final controller = TaskController(MemoryRepository(), clock: () => now);
+    await controller.load();
+    await controller.setLogicalDayStart(240);
+    await controller.create('مهمة الغد', bucket: TaskBucket.tomorrow);
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    TaskSection section(String title) => tester
+        .widgetList<TaskSection>(find.byType(TaskSection))
+        .singleWhere((section) => section.title == title);
+    expect(section('غداً').tasks, hasLength(1));
+    expect(section('اليوم').tasks, isEmpty);
+    now = DateTime(2026, 10, 15, 4);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(section('غداً').tasks, isEmpty);
+    expect(section('اليوم').tasks, hasLength(1));
+  });
+
   testWidgets('home cards show today work and the seven-day logged average', (
     tester,
   ) async {
@@ -190,7 +257,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SettingsScreen), findsOneWidget);
     for (final label in [
-      'منطق اليوم التالي',
+      'اليوم المنطقي',
       'الحفظ الاحتياطي',
       'سياسة الخصوصية',
       'عن التطبيق',
@@ -198,7 +265,27 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget);
     }
-    expect(find.text('قريباً'), findsNWidgets(5));
+    expect(find.text('00:00'), findsOneWidget);
+    expect(find.text('حدد الساعة التي يبدأ عندها يوم جديد'), findsOneWidget);
+    expect(find.text('قريباً'), findsNWidgets(4));
+    await tester.tap(find.text('اليوم المنطقي'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('لا ينتهي يوم الجميع عند منتصف الليل.'),
+      findsOneWidget,
+    );
+    final picker = tester.widget<CupertinoPicker>(
+      find.byKey(const ValueKey('logical-day-hour-picker')),
+    );
+    picker.scrollController!.jumpToItem(12);
+    await tester.pumpAndSettle();
+    expect(picker.scrollController!.selectedItem, 12);
+    picker.scrollController!.jumpToItem(4);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+    expect(controller.logicalDay.startMinutes, 240);
+    expect(find.text('04:00'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

@@ -11,9 +11,13 @@ class WorkTimeStats {
   final int? averageMinutes;
 }
 
-/// Today's total and the average of the seven preceding calendar days.
-WorkTimeStats workTimeStats(Iterable<Task> tasks, DateTime now) {
-  final today = calendarDay(now);
+/// Today's total and the average of the seven preceding completed logical days.
+WorkTimeStats workTimeStats(
+  Iterable<Task> tasks,
+  DateTime now, [
+  LogicalDay logicalDay = const LogicalDay(0),
+]) {
+  final today = logicalDay.dayOf(now);
   final firstDay = DateTime(today.year, today.month, today.day - 7);
   final minutesByDay = <DateTime, int>{};
   var todayMinutes = 0;
@@ -21,7 +25,7 @@ WorkTimeStats workTimeStats(Iterable<Task> tasks, DateTime now) {
   for (final task in tasks) {
     if (task.isDeleted) continue;
     for (final entry in task.timeEntries) {
-      final day = calendarDay(entry.createdAt);
+      final day = logicalDay.dayOf(entry.createdAt);
       if (day == today) {
         todayMinutes += entry.minutes;
         continue;

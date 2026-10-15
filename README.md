@@ -15,7 +15,7 @@ flutter run
 - Tasks are stored in a local SQLite database. The UI uses `TaskController` and the `TaskRepository` interface; `SqliteTaskRepository` is the current local implementation.
 - Every task has a stable ID, creation and update timestamps, an optional completion timestamp, an optional scheduled calendar date, and a soft-deletion flag. Completed history is grouped from stored tasks.
 - Tapping the home capture control opens a focused composer with a bucket choice and an optional tag. Tags can be reused from previous tasks or created inline. Existing databases migrate to version 3 without removing tasks.
-- Tasks are grouped into **اليوم**, **غداً**, and **لاحقاً**. Tomorrow tasks appear in **اليوم** from 5:00 AM local time on their scheduled day; later tasks move only when changed manually. A foreground resume or 5:00 AM timer refreshes the sections.
+- Tasks are grouped into **اليوم**, **غداً**, and **لاحقاً**. The **اليوم المنطقي** setting controls when tomorrow tasks become today (default 00:00); later tasks move only when changed manually. A foreground resume or day-boundary timer refreshes the sections.
 - IBM Plex Sans Arabic is bundled under its Open Font License in `assets/fonts/OFL.txt`, so typography works without a network connection.
 
 ## Verify

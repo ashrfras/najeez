@@ -34,7 +34,8 @@ extension TaskListKindDetails on TaskListKind {
       return controller.tasks
           .where(
             (task) =>
-                task.completedAt != null && sameDay(task.completedAt!, now),
+                task.completedAt != null &&
+                controller.logicalDay.same(task.completedAt!, now),
           )
           .toList()
         ..sort((a, b) => b.completedAt!.compareTo(a.completedAt!));
@@ -47,7 +48,9 @@ extension TaskListKindDetails on TaskListKind {
     };
     return controller.tasks
         .where(
-          (task) => !task.isCompleted && visibleBucket(task, now) == bucket,
+          (task) =>
+              !task.isCompleted &&
+              visibleBucket(task, now, controller.logicalDay) == bucket,
         )
         .toList();
   }

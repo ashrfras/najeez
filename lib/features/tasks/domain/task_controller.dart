@@ -12,9 +12,11 @@ class TaskController extends ChangeNotifier {
   final DateTime Function() _clock;
   final Random _random = Random.secure();
   List<Task> _tasks = [];
+  LogicalDay _logicalDay = const LogicalDay(0);
   bool isLoading = true;
   Object? error;
   DateTime get now => _clock();
+  LogicalDay get logicalDay => _logicalDay;
   List<Task> get tasks =>
       List.unmodifiable(_tasks.where((task) => !task.isDeleted));
   List<String> get availableTags => _tasks
@@ -27,6 +29,7 @@ class TaskController extends ChangeNotifier {
   Future<void> load() async {
     try {
       _tasks = await _repository.getTasks();
+      _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
       error = null;
     } catch (exception) {
       error = exception;
@@ -34,6 +37,15 @@ class TaskController extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> setLogicalDayStart(int minutes) async {
+    if (minutes < 0 || minutes >= 24 * 60) {
+      throw ArgumentError.value(minutes, 'minutes');
+    }
+    await _repository.setLogicalDayStartMinutes(minutes);
+    _logicalDay = LogicalDay(minutes);
+    notifyListeners();
   }
 
   Future<void> create(
@@ -56,7 +68,7 @@ class TaskController extends ChangeNotifier {
         bucket: bucket,
         createdAt: timestamp,
         updatedAt: timestamp,
-        scheduledDate: scheduleFor(bucket, timestamp),
+        scheduledDate: scheduleFor(bucket, timestamp, logicalDay),
         tag: cleanTag == null || cleanTag.isEmpty ? null : cleanTag,
       ),
     );
@@ -66,13 +78,13 @@ class TaskController extends ChangeNotifier {
       _save(task.copyWith(completedAt: now, updatedAt: now));
 
   Future<void> restore(Task task) {
-    final bucket = visibleBucket(task, now);
+    final bucket = visibleBucket(task, now, logicalDay);
     return _save(
       task.copyWith(
         clearCompletedAt: true,
         updatedAt: now,
         bucket: bucket,
-        scheduledDate: scheduleFor(bucket, now),
+        scheduledDate: scheduleFor(bucket, now, logicalDay),
         clearScheduledDate: bucket != TaskBucket.tomorrow,
       ),
     );
@@ -82,7 +94,7 @@ class TaskController extends ChangeNotifier {
     task.copyWith(
       bucket: bucket,
       updatedAt: now,
-      scheduledDate: scheduleFor(bucket, now),
+      scheduledDate: scheduleFor(bucket, now, logicalDay),
       clearScheduledDate: bucket != TaskBucket.tomorrow,
     ),
   );
@@ -98,13 +110,15 @@ class TaskController extends ChangeNotifier {
     task = _tasks.firstWhere((item) => item.id == task.id);
     final cleanTag = tag?.trim();
     final timestamp = now;
-    final bucketChanged = bucket != visibleBucket(task, timestamp);
+    final bucketChanged = bucket != visibleBucket(task, timestamp, logicalDay);
     await _save(
       task.copyWith(
         title: clean,
         updatedAt: timestamp,
         bucket: bucketChanged ? bucket : task.bucket,
-        scheduledDate: bucketChanged ? scheduleFor(bucket, timestamp) : null,
+        scheduledDate: bucketChanged
+            ? scheduleFor(bucket, timestamp, logicalDay)
+            : null,
         clearScheduledDate: bucketChanged && bucket != TaskBucket.tomorrow,
         tag: cleanTag,
         clearTag: cleanTag == null || cleanTag.isEmpty,

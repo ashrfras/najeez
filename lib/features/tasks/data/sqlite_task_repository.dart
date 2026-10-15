@@ -17,7 +17,7 @@ class SqliteTaskRepository implements TaskRepository {
         (kIsWeb ? 'baqi.db' : path.join(await getDatabasesPath(), 'baqi.db'));
     final database = await openDatabase(
       location,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks (
@@ -36,6 +36,9 @@ class SqliteTaskRepository implements TaskRepository {
         await db.execute(
           'CREATE INDEX tasks_completed_at ON tasks(completed_at)',
         );
+        await db.execute(
+          'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+        );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -52,6 +55,11 @@ class SqliteTaskRepository implements TaskRepository {
         if (oldVersion < 4) {
           await db.execute(
             "ALTER TABLE tasks ADD COLUMN time_entries TEXT NOT NULL DEFAULT '[]'",
+          );
+        }
+        if (oldVersion < 5) {
+          await db.execute(
+            'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
           );
         }
       },
@@ -72,6 +80,25 @@ class SqliteTaskRepository implements TaskRepository {
       _toRow(task),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  @override
+  Future<int> getLogicalDayStartMinutes() async {
+    final rows = await _database.query(
+      'settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: ['logical_day_start'],
+    );
+    return rows.isEmpty ? 0 : int.parse(rows.single['value'] as String);
+  }
+
+  @override
+  Future<void> setLogicalDayStartMinutes(int minutes) async {
+    await _database.insert('settings', {
+      'key': 'logical_day_start',
+      'value': '$minutes',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   @override

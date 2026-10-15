@@ -1,5 +1,6 @@
 import 'package:baqi/features/tasks/domain/task.dart';
 import 'package:baqi/features/tasks/domain/work_time_stats.dart';
+import 'package:baqi/features/tasks/domain/task_dates.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -54,5 +55,25 @@ void main() {
     ], now);
     expect(stats.todayMinutes, 90);
     expect(stats.averageMinutes, isNull);
+  });
+
+  test('uses seven completed logical days and excludes empty days', () {
+    final logicalDay = LogicalDay(240);
+    final current = DateTime(2026, 10, 15, 2);
+    final stats = workTimeStats(
+      [
+        task('entries', [
+          entry('current', 30, DateTime(2026, 10, 14, 12)),
+          entry('after-midnight', 90, DateTime(2026, 10, 15, 1)),
+          entry('previous', 60, DateTime(2026, 10, 14, 3, 59)),
+          entry('first', 120, DateTime(2026, 10, 7, 5)),
+          entry('outside', 900, DateTime(2026, 10, 7, 3, 59)),
+        ]),
+      ],
+      current,
+      logicalDay,
+    );
+    expect(stats.todayMinutes, 120);
+    expect(stats.averageMinutes, 90);
   });
 }

@@ -4,8 +4,16 @@ import 'package:baqi/features/tasks/domain/task_dates.dart';
 import 'package:baqi/features/tasks/domain/task_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class MemoryRepository implements TaskRepository {
+class MemoryRepository extends TaskRepository {
   final records = <String, Task>{};
+  int startMinutes = 0;
+  @override
+  Future<int> getLogicalDayStartMinutes() async => startMinutes;
+  @override
+  Future<void> setLogicalDayStartMinutes(int minutes) async {
+    startMinutes = minutes;
+  }
+
   @override
   Future<List<Task>> getTasks() async => records.values.toList();
   @override
@@ -18,6 +26,62 @@ class MemoryRepository implements TaskRepository {
 }
 
 void main() {
+  test(
+    'logical day groups completions and assigns tomorrow across midnight',
+    () async {
+      final repository = MemoryRepository();
+      var now = DateTime(2026, 10, 15, 1, 30);
+      final controller = TaskController(repository, clock: () => now);
+      await controller.load();
+      await controller.setLogicalDayStart(240);
+      await controller.create('غدا', bucket: TaskBucket.tomorrow);
+      var task = controller.tasks.single;
+      expect(task.scheduledDate, DateTime(2026, 10, 15));
+      expect(
+        visibleBucket(task, now, controller.logicalDay),
+        TaskBucket.tomorrow,
+      );
+      now = DateTime(2026, 10, 15, 4);
+      expect(visibleBucket(task, now, controller.logicalDay), TaskBucket.today);
+      await controller.complete(task);
+      task = controller.tasks.single;
+      expect(
+        completedByDay(controller.tasks, controller.logicalDay).keys.single,
+        DateTime(2026, 10, 15),
+      );
+      await controller.setLogicalDayStart(300);
+      expect(task.completedAt, DateTime(2026, 10, 15, 4));
+      expect(
+        completedByDay(controller.tasks, controller.logicalDay).keys.single,
+        DateTime(2026, 10, 14),
+      );
+      expect(repository.startMinutes, 300);
+    },
+  );
+
+  test('manual time entry keeps its actual creation instant', () async {
+    final repository = MemoryRepository();
+    var now = DateTime(2026, 10, 15, 2, 15);
+    final controller = TaskController(repository, clock: () => now);
+    await controller.load();
+    await controller.setLogicalDayStart(240);
+    await controller.create('عمل');
+    await controller.addTimeEntry(
+      controller.tasks.single,
+      hours: 1,
+      minutes: 0,
+    );
+    final entry = controller.tasks.single.timeEntries.single;
+    expect(entry.createdAt, now);
+    expect(
+      controller.logicalDay.dayOf(entry.createdAt),
+      DateTime(2026, 10, 14),
+    );
+    now = DateTime(2026, 10, 15, 4);
+    expect(controller.logicalDay.dayOf(now), DateTime(2026, 10, 15));
+    expect(entry.createdAt, DateTime(2026, 10, 15, 2, 15));
+  });
+
   test(
     'multiple manual time entries accumulate and survive other task edits',
     () async {
@@ -92,22 +156,35 @@ void main() {
     expect(repository.records.values.single.isDeleted, isTrue);
   });
 
-  test('tomorrow moves to today at 5 AM, including after missed days', () {
-    final task = Task(
-      id: 'a',
-      title: 'مهمة',
-      bucket: TaskBucket.tomorrow,
-      createdAt: DateTime(2026, 10, 10),
-      updatedAt: DateTime(2026, 10, 10),
-      scheduledDate: DateTime(2026, 10, 11),
-    );
-    expect(
-      visibleBucket(task, DateTime(2026, 10, 11, 4, 59)),
-      TaskBucket.tomorrow,
-    );
-    expect(visibleBucket(task, DateTime(2026, 10, 11, 5)), TaskBucket.today);
-    expect(visibleBucket(task, DateTime(2026, 10, 12)), TaskBucket.today);
-  });
+  test(
+    'tomorrow moves to today at the selected start, including missed days',
+    () {
+      final task = Task(
+        id: 'a',
+        title: 'مهمة',
+        bucket: TaskBucket.tomorrow,
+        createdAt: DateTime(2026, 10, 10),
+        updatedAt: DateTime(2026, 10, 10),
+        scheduledDate: DateTime(2026, 10, 11),
+      );
+      expect(
+        visibleBucket(
+          task,
+          DateTime(2026, 10, 11, 3, 59),
+          const LogicalDay(240),
+        ),
+        TaskBucket.tomorrow,
+      );
+      expect(
+        visibleBucket(task, DateTime(2026, 10, 11, 4), const LogicalDay(240)),
+        TaskBucket.today,
+      );
+      expect(
+        visibleBucket(task, DateTime(2026, 10, 12), const LogicalDay(240)),
+        TaskBucket.today,
+      );
+    },
+  );
 
   test('later stays later and has no scheduled date', () async {
     final repository = MemoryRepository();
@@ -135,6 +212,7 @@ void main() {
       var now = DateTime(2026, 10, 11, 10);
       final controller = TaskController(repository, clock: () => now);
       await controller.load();
+      await controller.setLogicalDayStart(300);
       await controller.create('قديم', bucket: TaskBucket.tomorrow, tag: 'عمل');
       final original = controller.tasks.single;
       now = DateTime(2026, 10, 12, 4, 30);

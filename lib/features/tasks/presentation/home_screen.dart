@@ -33,23 +33,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _refresh() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      _scheduleDayRefresh();
+    }
   }
 
   void _scheduleDayRefresh() {
     _dayTimer?.cancel();
-    final now = DateTime.now();
-    final todayAtFive = DateTime(now.year, now.month, now.day, 5);
-    final nextRefresh = now.isBefore(todayAtFive)
-        ? todayAtFive
-        : DateTime(now.year, now.month, now.day + 1, 5);
-    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
-    final refreshAt = nextMidnight.isBefore(nextRefresh)
-        ? nextMidnight
-        : nextRefresh;
+    final now = widget.controller.now;
+    final refreshAt = widget.controller.logicalDay.nextStart(now);
     _dayTimer = Timer(refreshAt.difference(now), () {
       widget.controller.refreshDay();
-      _scheduleDayRefresh();
     });
   }
 
@@ -525,9 +520,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
   );
 
-  void _openSettings() => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+  void _openSettings() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => SettingsScreen(controller: widget.controller),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -536,7 +533,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final tomorrow = TaskListKind.tomorrow.select(widget.controller);
     final later = TaskListKind.later.select(widget.controller);
     final completed = TaskListKind.completedToday.select(widget.controller);
-    final workTime = workTimeStats(widget.controller.tasks, now);
+    final workTime = workTimeStats(
+      widget.controller.tasks,
+      now,
+      widget.controller.logicalDay,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -555,7 +556,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           children: [
                             Expanded(
                               child: Text(
-                                arabicDate(now),
+                                arabicDate(
+                                  widget.controller.logicalDay.dayOf(now),
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppType.caption,
