@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design.dart';
 import '../../tasks/domain/task_controller.dart';
+import 'app_info_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
@@ -64,11 +65,27 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 25),
-                const _SettingsGroup(
+                _SettingsGroup(
                   title: 'معلومات',
                   items: [
-                    _SettingsItem(Icons.privacy_tip_outlined, 'سياسة الخصوصية'),
-                    _SettingsItem(Icons.info_outline, 'عن التطبيق'),
+                    _SettingsItem(
+                      Icons.privacy_tip_outlined,
+                      'سياسة الخصوصية',
+                      onTap: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyScreen(),
+                        ),
+                      ),
+                    ),
+                    _SettingsItem(
+                      Icons.info_outline,
+                      'عن التطبيق',
+                      onTap: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 25),
@@ -328,10 +345,18 @@ class _SettingsGroup extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        items[index].trailing ?? 'قريباً',
-                        style: AppType.caption,
-                      ),
+                      if (items[index].trailing != null ||
+                          items[index].onTap == null)
+                        Text(
+                          items[index].trailing ?? 'قريباً',
+                          style: AppType.caption,
+                        )
+                      else
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: AppColors.muted,
+                        ),
                     ],
                   ),
                 ),

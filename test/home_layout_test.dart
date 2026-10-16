@@ -86,7 +86,7 @@ void main() {
     await tester.pumpWidget(
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
-    await tester.tap(find.text('أضف مهمة بسرعة ...'));
+    await tester.tap(find.text('أضف مهمة ...'));
     await tester.pumpAndSettle();
     expect(find.text('إضافة مهمة'), findsOneWidget);
     expect(tester.takeException(), isNull);

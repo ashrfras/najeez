@@ -26,7 +26,7 @@ class TaskRow extends StatefulWidget {
 class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
   late final AnimationController _completion = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 700),
+    duration: const Duration(milliseconds: 1400),
   );
   bool _completing = false;
 
@@ -57,6 +57,16 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
     animation: _completion,
     builder: (context, _) {
       final progress = _completion.value;
+      final strike = const Interval(
+        0.1,
+        0.7,
+        curve: Curves.easeInOut,
+      ).transform(progress);
+      final exit = const Interval(
+        0.76,
+        1,
+        curve: Curves.easeInOut,
+      ).transform(progress);
       final checked = widget.task.isCompleted || progress > .12;
       final fill = widget.task.isCompleted
           ? AppColors.green
@@ -65,118 +75,201 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
               AppColors.green,
               (progress * 3).clamp(0.0, 1.0),
             )!;
-      return InkWell(
-        onTap: widget.onActions,
-        onLongPress: widget.onActions,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: _toggle,
-                child: SizedBox(
-                  width: widget.dense ? 18 : 23,
-                  height: widget.dense ? 18 : 23,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
+      return IgnorePointer(
+        ignoring: _completing,
+        child: ClipRect(
+          child: Align(
+            heightFactor: 1 - exit,
+            child: Opacity(
+              opacity: 1 - exit,
+              child: InkWell(
+                onTap: widget.onActions,
+                onLongPress: widget.onActions,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: Row(
                     children: [
-                      if (progress > 0 && progress < 1)
-                        Transform.scale(
-                          scale: 1 + progress * .85,
-                          child: Container(
-                            width: widget.dense ? 18 : 23,
-                            height: widget.dense ? 18 : 23,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.green.withValues(
-                                  alpha: (1 - progress) * .7,
+                      GestureDetector(
+                        onTap: _toggle,
+                        child: SizedBox(
+                          width: widget.dense ? 18 : 23,
+                          height: widget.dense ? 18 : 23,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              if (progress > 0 && progress < 1)
+                                Transform.scale(
+                                  scale: 1 + progress * .85,
+                                  child: Container(
+                                    width: widget.dense ? 18 : 23,
+                                    height: widget.dense ? 18 : 23,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.green.withValues(
+                                          alpha: (1 - progress) * .7,
+                                        ),
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                width: 2,
+                              Transform.scale(
+                                scale: 1 + .16 * math.sin(progress * math.pi),
+                                child: Container(
+                                  width: widget.dense ? 18 : 23,
+                                  height: widget.dense ? 18 : 23,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: fill,
+                                    border: Border.all(
+                                      color: checked
+                                          ? AppColors.green
+                                          : AppColors.muted,
+                                      width: widget.dense ? 1.4 : 1.6,
+                                    ),
+                                  ),
+                                  child: checked
+                                      ? Transform.scale(
+                                          scale: widget.task.isCompleted
+                                              ? 1
+                                              : Curves.elasticOut.transform(
+                                                  ((progress - .12) / .7).clamp(
+                                                    0.0,
+                                                    1.0,
+                                                  ),
+                                                ),
+                                          child: Icon(
+                                            Icons.check,
+                                            size: widget.dense ? 13 : 17,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: widget.dense ? 7 : 11),
+                      Expanded(
+                        child: CustomPaint(
+                          foregroundPainter: _TaskStrikePainter(
+                            text: widget.task.title,
+                            style: DefaultTextStyle.of(
+                              context,
+                            ).style.merge(AppType.body),
+                            direction: Directionality.of(context),
+                            textScaler: MediaQuery.textScalerOf(context),
+                            maxLines: widget.dense ? 1 : 2,
+                            progress: strike,
+                          ),
+                          child: Text(
+                            widget.task.title,
+                            maxLines: widget.dense ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.body.copyWith(
+                              color: Color.lerp(
+                                widget.task.isCompleted
+                                    ? AppColors.muted
+                                    : AppColors.text,
+                                AppColors.muted,
+                                progress,
                               ),
                             ),
                           ),
                         ),
-                      Transform.scale(
-                        scale: 1 + .16 * math.sin(progress * math.pi),
-                        child: Container(
-                          width: widget.dense ? 18 : 23,
-                          height: widget.dense ? 18 : 23,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: fill,
-                            border: Border.all(
-                              color: checked
-                                  ? AppColors.green
-                                  : AppColors.muted,
-                              width: widget.dense ? 1.4 : 1.6,
-                            ),
-                          ),
-                          child: checked
-                              ? Transform.scale(
-                                  scale: widget.task.isCompleted
-                                      ? 1
-                                      : Curves.elasticOut.transform(
-                                          ((progress - .12) / .7).clamp(
-                                            0.0,
-                                            1.0,
-                                          ),
-                                        ),
-                                  child: Icon(
-                                    Icons.check,
-                                    size: widget.dense ? 13 : 17,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : null,
-                        ),
                       ),
+                      if (widget.showTime && widget.task.totalMinutes > 0) ...[
+                        const SizedBox(width: 7),
+                        Text(
+                          '◷ ${durationLabel(widget.task.totalMinutes)}',
+                          maxLines: 1,
+                          style: AppType.caption.copyWith(
+                            color: AppColors.blue,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                      if (widget.task.tag != null) ...[
+                        const SizedBox(width: 7),
+                        _TagBadge(label: widget.task.tag!),
+                      ],
                     ],
                   ),
                 ),
               ),
-              SizedBox(width: widget.dense ? 7 : 11),
-              Expanded(
-                child: Text(
-                  widget.task.title,
-                  maxLines: widget.dense ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.body.copyWith(
-                    color: Color.lerp(
-                      widget.task.isCompleted
-                          ? AppColors.muted
-                          : AppColors.text,
-                      AppColors.muted,
-                      progress,
-                    ),
-                    decoration: progress > .6
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-              ),
-              if (widget.showTime && widget.task.totalMinutes > 0) ...[
-                const SizedBox(width: 7),
-                Text(
-                  '◷ ${durationLabel(widget.task.totalMinutes)}',
-                  maxLines: 1,
-                  style: AppType.caption.copyWith(
-                    color: AppColors.blue,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-              if (widget.task.tag != null) ...[
-                const SizedBox(width: 7),
-                _TagBadge(label: widget.task.tag!),
-              ],
-            ],
+            ),
           ),
         ),
       );
     },
   );
+}
+
+class _TaskStrikePainter extends CustomPainter {
+  const _TaskStrikePainter({
+    required this.text,
+    required this.style,
+    required this.direction,
+    required this.textScaler,
+    required this.maxLines,
+    required this.progress,
+  });
+
+  final String text;
+  final TextStyle style;
+  final TextDirection direction;
+  final TextScaler textScaler;
+  final int maxLines;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress == 0) return;
+    final layout = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: textScaler,
+      maxLines: maxLines,
+      ellipsis: '…',
+    )..layout(minWidth: size.width, maxWidth: size.width);
+    final lines = layout.computeLineMetrics();
+    final paint = Paint()
+      ..color = AppColors.muted
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      final fraction = (progress * lines.length - index).clamp(0.0, 1.0);
+      if (fraction == 0) continue;
+      final start = direction == TextDirection.rtl
+          ? line.left + line.width
+          : line.left;
+      final length = line.width * fraction;
+      final y = line.baseline - line.ascent * .35;
+      canvas.drawLine(
+        Offset(start, y),
+        Offset(start + (direction == TextDirection.rtl ? -length : length), y),
+        paint,
+      );
+    }
+    layout.dispose();
+  }
+
+  @override
+  bool shouldRepaint(_TaskStrikePainter oldDelegate) =>
+      progress != oldDelegate.progress ||
+      text != oldDelegate.text ||
+      style != oldDelegate.style ||
+      direction != oldDelegate.direction ||
+      textScaler != oldDelegate.textScaler ||
+      maxLines != oldDelegate.maxLines;
 }
 
 class _TagBadge extends StatelessWidget {

@@ -43,14 +43,14 @@ void main() {
         tester.getTopLeft(find.text('سجّل مهامك بسرعة، وأنجزها ببساطة.')).dy,
       ),
     );
-    expect(find.text('أضف مهمة بسرعة ...'), findsNothing);
+    expect(find.text('أضف مهمة ...'), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 2700));
     expect(find.text('خلّيك'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
-    expect(find.text('أضف مهمة بسرعة ...'), findsOneWidget);
+    expect(find.text('أضف مهمة ...'), findsOneWidget);
     expect(find.text('خلّيك'), findsNothing);
     expect(tester.takeException(), isNull);
   });

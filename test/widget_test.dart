@@ -11,8 +11,10 @@ import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
 import 'package:baqi/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class MemoryRepository extends TaskRepository {
   final tasks = <Task>[];
@@ -35,7 +37,62 @@ class SlowSettingsRepository extends MemoryRepository {
   Future<void> setLogicalDayStartMinutes(int minutes) => saveGate.future;
 }
 
+class RecordingCanvas extends Fake implements Canvas {
+  final lines = <(Offset, Offset)>[];
+
+  @override
+  void drawLine(Offset start, Offset end, Paint paint) {
+    lines.add((start, end));
+  }
+}
+
 void main() {
+  testWidgets(
+    'settings opens privacy and reads the installed release details',
+    (tester) async {
+      PackageInfo.setMockInitialValues(
+        appName: 'نجيز',
+        packageName: 'ma.raqmain.najeez',
+        version: '2.3.4',
+        buildNumber: '42',
+        buildSignature: '',
+      );
+      final controller = TaskController(MemoryRepository());
+      await controller.load();
+      await tester.pumpWidget(
+        BaqiApp(controller: controller, splashDuration: Duration.zero),
+      );
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('سياسة الخصوصية'));
+      await tester.pumpAndSettle();
+      expect(find.text('خصوصيتك في نجيز'), findsOneWidget);
+      expect(find.text('البيانات التي يحفظها التطبيق'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('الاحتفاظ بالبيانات وحذفها'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.textContaining('ولا يُعد ذلك مسحاً نهائياً'), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('عن التطبيق'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('التصحيح (رقم البناء)'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Raqmain®'), findsOneWidget);
+      expect(find.text('2.3.4'), findsOneWidget);
+      expect(find.text('42'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsScreen), findsOneWidget);
+    },
+  );
+
   testWidgets('logical day picker shows progress while saving', (tester) async {
     final repository = SlowSettingsRepository();
     final controller = TaskController(repository);
@@ -267,7 +324,7 @@ void main() {
     }
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text('حدد الساعة التي يبدأ عندها يوم جديد'), findsOneWidget);
-    expect(find.text('قريباً'), findsNWidgets(4));
+    expect(find.text('قريباً'), findsNWidgets(2));
     await tester.tap(find.text('اليوم المنطقي'));
     await tester.pumpAndSettle();
     expect(
@@ -533,10 +590,13 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TaskRow(
-            task: task,
-            onToggle: () => toggles++,
-            onActions: () {},
+          body: Directionality(
+            textDirection: TextDirection.rtl,
+            child: TaskRow(
+              task: task,
+              onToggle: () => toggles++,
+              onActions: () {},
+            ),
           ),
         ),
       ),
@@ -557,6 +617,41 @@ void main() {
     expect(feedback, ['HapticFeedbackType.mediumImpact']);
     expect(find.byIcon(Icons.check), findsOneWidget);
     expect(toggles, 0);
+
+    final opacity = find.descendant(
+      of: find.byType(TaskRow),
+      matching: find.byType(Opacity),
+    );
+    final initialHeight = tester.getSize(find.byType(TaskRow)).height;
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(toggles, 0);
+    expect(tester.widget<Opacity>(opacity).opacity, 1);
+    final title = find.text(task.title);
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(of: title, matching: find.byType(RichText)),
+    );
+    final boxes = paragraph.getBoxesForSelection(
+      TextSelection(baseOffset: 0, extentOffset: task.title.length),
+    );
+    final customPaint = tester.widget<CustomPaint>(
+      find.ancestor(of: title, matching: find.byType(CustomPaint)).first,
+    );
+    final canvas = RecordingCanvas();
+    customPaint.foregroundPainter!.paint(canvas, paragraph.size);
+    expect(canvas.lines, hasLength(1));
+    expect(canvas.lines.single.$1.dx, closeTo(boxes.first.right, 1));
+    expect(canvas.lines.single.$2.dx, closeTo(boxes.last.left, 1));
+    expect(
+      canvas.lines.single.$1.dy,
+      inExclusiveRange(boxes.first.top, boxes.first.bottom),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(toggles, 0);
+    expect(tester.widget<Opacity>(opacity).opacity, inExclusiveRange(0, 1));
+    expect(
+      tester.getSize(find.byType(TaskRow)).height,
+      lessThan(initialHeight),
+    );
 
     await tester.pumpAndSettle();
     expect(toggles, 1);
@@ -717,7 +812,7 @@ void main() {
     await tester.pumpWidget(
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
-    await tester.tap(find.text('أضف مهمة بسرعة ...'));
+    await tester.tap(find.text('أضف مهمة ...'));
     await tester.pumpAndSettle();
     expect(find.text('إضافة مهمة'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, 'إرسال الملاحظات');
@@ -742,7 +837,7 @@ void main() {
     await tester.pumpWidget(
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
-    await tester.tap(find.text('أضف مهمة بسرعة ...'));
+    await tester.tap(find.text('أضف مهمة ...'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'مهمة جديدة');
     await tester.tap(find.text('شخصي').last);

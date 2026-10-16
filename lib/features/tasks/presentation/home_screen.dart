@@ -646,7 +646,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             children: [
                               const Expanded(
                                 child: Text(
-                                  'أضف مهمة بسرعة ...',
+                                  'أضف مهمة ...',
                                   style: AppType.caption,
                                 ),
                               ),
