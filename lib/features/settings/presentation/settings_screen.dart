@@ -10,6 +10,19 @@ class SettingsScreen extends StatelessWidget {
 
   final TaskController controller;
 
+  Future<void> _reset(BuildContext context) async {
+    final didReset = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ResetDialog(controller: controller),
+    );
+    if (didReset != true || !context.mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم حذف جميع البيانات وإعادة ضبط التطبيق.')),
+    );
+  }
+
   Future<void> _chooseLogicalDay(BuildContext context) => showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -89,13 +102,14 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 25),
-                const _SettingsGroup(
+                _SettingsGroup(
                   title: 'البيانات',
                   items: [
                     _SettingsItem(
                       Icons.restart_alt_rounded,
                       'إعادة الضبط',
                       color: AppColors.red,
+                      onTap: () => _reset(context),
                     ),
                   ],
                 ),
@@ -104,6 +118,85 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ),
+    ),
+  );
+}
+
+class _ResetDialog extends StatefulWidget {
+  const _ResetDialog({required this.controller});
+
+  final TaskController controller;
+
+  @override
+  State<_ResetDialog> createState() => _ResetDialogState();
+}
+
+class _ResetDialogState extends State<_ResetDialog> {
+  bool _resetting = false;
+  bool _failed = false;
+
+  Future<void> _confirm() async {
+    if (_resetting) return;
+    setState(() {
+      _resetting = true;
+      _failed = false;
+    });
+    try {
+      await widget.controller.reset();
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _resetting = false;
+          _failed = true;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_resetting,
+    child: AlertDialog(
+      scrollable: true,
+      title: const Text('إعادة ضبط التطبيق؟'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'سيتم حذف جميع المهام، بما فيها المكتملة والمحذوفة، والوسوم وسجلات الوقت والإحصائيات، وإعادة الإعدادات إلى حالتها الأولى.\n\nهذا الإجراء نهائي، ولا يمكن استرجاع البيانات بعد حذفها.',
+          ),
+          if (_failed)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: Text(
+                'تعذّرت إعادة الضبط. لم تُحذف البيانات. حاول مرة أخرى.',
+                style: TextStyle(color: AppColors.red),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _resetting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+          onPressed: _resetting ? null : _confirm,
+          child: _resetting
+              ? Semantics(
+                  label: 'جارٍ حذف البيانات',
+                  child: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : const Text('حذف جميع البيانات'),
+        ),
+      ],
     ),
   );
 }

@@ -102,6 +102,14 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<void> reset() async {
+    await _database.transaction((transaction) async {
+      await transaction.delete('tasks');
+      await transaction.delete('settings');
+    });
+  }
+
+  @override
   Future<void> close() => _database.close();
 
   static Task _fromRow(Map<String, Object?> row) => Task(

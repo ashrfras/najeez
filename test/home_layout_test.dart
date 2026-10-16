@@ -39,6 +39,9 @@ class VisualRepository extends TaskRepository {
   @override
   Future<void> upsertTask(Task task) async {}
   @override
+  Future<void> reset() async {}
+
+  @override
   Future<void> close() async {}
 }
 

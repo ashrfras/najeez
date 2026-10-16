@@ -48,6 +48,15 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> reset() async {
+    await _repository.reset();
+    _tasks = [];
+    _logicalDay = const LogicalDay(0);
+    error = null;
+    isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> create(
     String title, {
     TaskBucket bucket = TaskBucket.today,

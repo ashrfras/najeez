@@ -22,6 +22,12 @@ class MemoryRepository extends TaskRepository {
   }
 
   @override
+  Future<void> reset() async {
+    records.clear();
+    startMinutes = 0;
+  }
+
+  @override
   Future<void> close() async {}
 }
 

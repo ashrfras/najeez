@@ -13,6 +13,9 @@ class _EmptyRepository extends TaskRepository {
   Future<void> upsertTask(Task task) async {}
 
   @override
+  Future<void> reset() async {}
+
+  @override
   Future<void> close() async {}
 }
 

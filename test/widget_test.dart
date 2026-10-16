@@ -27,6 +27,11 @@ class MemoryRepository extends TaskRepository {
   }
 
   @override
+  Future<void> reset() async {
+    tasks.clear();
+  }
+
+  @override
   Future<void> close() async {}
 }
 
@@ -324,7 +329,7 @@ void main() {
     }
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text('حدد الساعة التي يبدأ عندها يوم جديد'), findsOneWidget);
-    expect(find.text('قريباً'), findsNWidgets(2));
+    expect(find.text('قريباً'), findsOneWidget);
     await tester.tap(find.text('اليوم المنطقي'));
     await tester.pumpAndSettle();
     expect(
