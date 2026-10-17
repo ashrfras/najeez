@@ -16,6 +16,7 @@ flutter run
 - Every task has a stable ID, creation and update timestamps, an optional completion timestamp, an optional scheduled calendar date, and a soft-deletion flag. Completed history is grouped from stored tasks.
 - Tapping the home capture control opens a focused composer with a bucket choice and an optional tag. Tags can be reused from previous tasks or created inline. Existing databases migrate to version 3 without removing tasks.
 - Tasks are grouped into **اليوم**, **غداً**, and **لاحقاً**. The **اليوم المنطقي** setting controls when tomorrow tasks become today (default 00:00); later tasks move only when changed manually. A foreground resume or day-boundary timer refreshes the sections.
+- Statistics shows the latest seven logical calendar days (including today), with up to seven more loaded on demand until the oldest completion or time entry. Empty history (including after reset) keeps only the latest week. Time distribution uses each time entry’s date, including work on open tasks; completion counts use completion dates. Untagged time appears under «أخرى». The storage-independent statistics index is rebuilt on task changes, while day cards are rendered lazily without chart dependencies.
 - IBM Plex Sans Arabic is bundled under its Open Font License in `assets/fonts/OFL.txt`, so typography works without a network connection.
 
 ## Verify

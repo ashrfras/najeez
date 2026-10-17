@@ -292,12 +292,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(StatisticsScreen), findsOneWidget);
     expect(find.text('الإحصاءات'), findsOneWidget);
-    await tester.tap(find.text('الثلاثاء، 13 أكتوبر'));
-    await tester.pumpAndSettle();
-    expect(find.text('مهمة مكتملة'), findsOneWidget);
+    // The current logical day is expanded on opening the statistics screen.
+    expect(find.text('مهمة مكتملة'), findsNWidgets(2));
     expect(find.text('◷ 1 س 30 د'), findsOneWidget);
     expect(find.text('09:00'), findsOneWidget);
-    await tester.tap(find.text('مهمة مكتملة'));
+    await tester.ensureVisible(find.text('مهمة مكتملة').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مهمة مكتملة').last);
     await tester.pumpAndSettle();
     expect(find.text('اكتملت: الثلاثاء، 13 أكتوبر، 09:00'), findsOneWidget);
   });
