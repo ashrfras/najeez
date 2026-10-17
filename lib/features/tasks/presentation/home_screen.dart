@@ -10,6 +10,7 @@ import '../../settings/presentation/settings_screen.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
 import '../domain/work_time_stats.dart';
+import '../domain/completion_stats.dart';
 import 'task_composer_screen.dart';
 import 'task_list_screen.dart';
 import 'task_widgets.dart';
@@ -110,26 +111,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 textAlign: TextAlign.center,
                 style: AppType.section,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
-                style: AppType.caption,
-              ),
+              if (widget.controller.timeTrackingEnabled) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
+                  style: AppType.caption,
+                ),
+              ],
               if (task.completedAt != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}',
+                  widget.controller.timeTrackingEnabled
+                      ? 'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}'
+                      : 'اكتملت: ${arabicDate(task.completedAt!)}',
                   style: AppType.caption,
                 ),
               ],
               const SizedBox(height: 18),
-              _action(
-                Icons.add_alarm_outlined,
-                'إضافة وقت',
-                AppColors.blue,
-                () => _addTime(task),
-              ),
-              if (task.timeEntries.isNotEmpty)
+              if (widget.controller.timeTrackingEnabled)
+                _action(
+                  Icons.add_alarm_outlined,
+                  'إضافة وقت',
+                  AppColors.blue,
+                  () => _addTime(task),
+                ),
+              if (widget.controller.timeTrackingEnabled &&
+                  task.timeEntries.isNotEmpty)
                 _action(
                   Icons.history,
                   'عرض إدخالات الوقت (${task.timeEntries.length})',
@@ -533,6 +540,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final tomorrow = TaskListKind.tomorrow.select(widget.controller);
     final later = TaskListKind.later.select(widget.controller);
     final completed = TaskListKind.completedToday.select(widget.controller);
+    final tracking = widget.controller.timeTrackingEnabled;
+    final completions = CompletionStats(
+      widget.controller.tasks,
+      now,
+      widget.controller.logicalDay,
+    );
     final workTime = workTimeStats(
       widget.controller.tasks,
       now,
@@ -612,15 +625,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           const SizedBox(width: 8),
                           _Stat(
-                            value: compactDurationLabel(workTime.todayMinutes),
+                            value: tracking
+                                ? compactDurationLabel(workTime.todayMinutes)
+                                : '${completions.todayCount}',
                             label: 'عمل اليوم',
                             color: AppColors.blue,
-                            icon: Icons.schedule_outlined,
+                            icon: tracking
+                                ? Icons.schedule_outlined
+                                : Icons.check_circle_outline,
                             onTap: _openStatistics,
                           ),
                           const SizedBox(width: 8),
                           _Stat(
-                            value: workTime.averageMinutes == null
+                            value: !tracking
+                                ? completions.averageLabel
+                                : workTime.averageMinutes == null
                                 ? '-'
                                 : compactDurationLabel(
                                     workTime.averageMinutes!,
@@ -671,6 +690,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       TaskSection(
                         title: 'اليوم',
                         tasks: today,
+                        showTime: tracking,
                         accent: AppColors.blue,
                         icon: Icons.adjust,
                         previewLimit: 5,
@@ -717,6 +737,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       TaskSection(
                         title: 'تم اليوم',
                         tasks: completed,
+                        showTime: tracking,
                         accent: AppColors.green,
                         icon: Icons.check,
                         previewLimit: 3,

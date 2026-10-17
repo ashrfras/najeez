@@ -13,6 +13,8 @@ class TaskController extends ChangeNotifier {
   final Random _random = Random.secure();
   List<Task> _tasks = [];
   LogicalDay _logicalDay = const LogicalDay(0);
+  bool _timeTrackingEnabled = true;
+  bool get timeTrackingEnabled => _timeTrackingEnabled;
   bool isLoading = true;
   Object? error;
   DateTime get now => _clock();
@@ -30,6 +32,7 @@ class TaskController extends ChangeNotifier {
     try {
       _tasks = await _repository.getTasks();
       _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
+      _timeTrackingEnabled = await _repository.getTimeTrackingEnabled();
       error = null;
     } catch (exception) {
       error = exception;
@@ -48,9 +51,16 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setTimeTrackingEnabled(bool enabled) async {
+    await _repository.setTimeTrackingEnabled(enabled);
+    _timeTrackingEnabled = enabled;
+    notifyListeners();
+  }
+
   Future<void> reset() async {
     await _repository.reset();
     _tasks = [];
+    _timeTrackingEnabled = true;
     _logicalDay = const LogicalDay(0);
     error = null;
     isLoading = false;

@@ -20,6 +20,7 @@ class StatisticsScreen extends StatefulWidget {
 }
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
+  bool get _tracking => widget.controller.timeTrackingEnabled;
   late StatisticsIndex _statistics;
   late DateTime _today;
   late DayStatistics _summary;
@@ -41,6 +42,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     _statistics = StatisticsIndex(
       widget.controller.tasks,
       widget.controller.logicalDay,
+      includeTime: _tracking,
     );
     final today = widget.controller.logicalDay.dayOf(widget.controller.now);
     if (today != _today) {
@@ -143,14 +145,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _metric(
-                      Icons.schedule,
-                      durationLabel(summary.totalMinutes),
-                      'الوقت المسجل',
+                  if (_tracking) ...[
+                    Expanded(
+                      child: _metric(
+                        Icons.schedule,
+                        durationLabel(summary.totalMinutes),
+                        'الوقت المسجل',
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
                     child: _metric(
                       Icons.check_circle,
@@ -161,7 +165,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              _TimeDistribution(statistics: summary),
+              if (!_tracking) ...[
+                const Text(
+                  'توزيع المهام المكتملة حسب التصنيفات',
+                  style: AppType.body,
+                ),
+                const SizedBox(height: 12),
+              ],
+              _CategoryDistribution(statistics: summary, tracking: _tracking),
             ],
           ),
         ),
@@ -201,7 +212,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _dayCard(DayStatistics stats) {
     final date = stats.day;
     final tasks = stats.completedTasks;
-    final isEmpty = tasks.isEmpty && stats.totalMinutes == 0;
+    final isEmpty = tasks.isEmpty && (!_tracking || stats.totalMinutes == 0);
     final isExpanded = !isEmpty && _expanded.contains(date);
     final showAll = _showAllTasks.contains(date);
     final label =
@@ -233,7 +244,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                           Text(label, style: AppType.section),
                           const SizedBox(height: 5),
                           Text(
-                            isEmpty
+                            !_tracking
+                                ? (isEmpty
+                                      ? 'لا توجد مهام مكتملة'
+                                      : '${tasks.length} مهام مكتملة')
+                                : isEmpty
                                 ? 'لا توجد مهام مكتملة أو وقت مسجل'
                                 : '${tasks.length} مهام مكتملة · ${durationLabel(stats.totalMinutes)}',
                             style: AppType.caption,
@@ -265,9 +280,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  const Text('توزيع الوقت', style: AppType.body),
+                  Text(
+                    _tracking
+                        ? 'توزيع الوقت'
+                        : 'توزيع المهام المكتملة حسب التصنيفات',
+                    style: AppType.body,
+                  ),
                   const SizedBox(height: 12),
-                  _TimeDistribution(statistics: stats),
+                  _CategoryDistribution(statistics: stats, tracking: _tracking),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1, color: AppColors.border),
@@ -321,7 +341,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(task.title, style: AppType.body),
-                if (task.totalMinutes > 0)
+                if (_tracking && task.totalMinutes > 0)
                   Text(
                     '◷ ${durationLabel(task.totalMinutes)}',
                     style: AppType.caption.copyWith(color: AppColors.blue),
@@ -329,16 +349,25 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(timeLabel(task.completedAt!.toLocal()), style: AppType.caption),
+          if (_tracking) ...[
+            const SizedBox(width: 10),
+            Text(
+              timeLabel(task.completedAt!.toLocal()),
+              style: AppType.caption,
+            ),
+          ],
         ],
       ),
     ),
   );
 }
 
-class _TimeDistribution extends StatelessWidget {
-  const _TimeDistribution({required this.statistics});
+class _CategoryDistribution extends StatelessWidget {
+  const _CategoryDistribution({
+    required this.statistics,
+    required this.tracking,
+  });
+  final bool tracking;
   final DayStatistics statistics;
 
   Color _color(String? tag) {
@@ -359,23 +388,31 @@ class _TimeDistribution extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = statistics.totalMinutes;
+    final total = tracking
+        ? statistics.totalMinutes
+        : statistics.completedTasks.length;
     if (total == 0) {
-      return const Text(
-        'لا يوجد وقت مسجل خلال هذه الفترة',
+      return Text(
+        tracking
+            ? 'لا يوجد وقت مسجل خلال هذه الفترة'
+            : 'لا توجد مهام مكتملة خلال هذه الفترة',
         style: AppType.caption,
       );
     }
-    final categories = statistics.minutesByTag.entries.toList()
-      ..sort((a, b) {
-        final order = b.value.compareTo(a.value);
-        return order == 0 ? (a.key ?? '').compareTo(b.key ?? '') : order;
-      });
+    final categories =
+        (tracking ? statistics.minutesByTag : statistics.completedByTag).entries
+            .toList()
+          ..sort((a, b) {
+            final order = b.value.compareTo(a.value);
+            return order == 0 ? (a.key ?? '').compareTo(b.key ?? '') : order;
+          });
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Semantics(
-          label: 'توزيع الوقت حسب التصنيفات',
+          label: tracking
+              ? 'توزيع الوقت حسب التصنيفات'
+              : 'توزيع المهام المكتملة حسب التصنيفات',
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: SizedBox(
@@ -421,9 +458,12 @@ class _TimeDistribution extends StatelessWidget {
                             const SizedBox(width: 5),
                             Expanded(
                               child: Tooltip(
-                                message: category.key ?? 'أخرى',
+                                message:
+                                    category.key ??
+                                    (tracking ? 'أخرى' : 'غير مصنف'),
                                 child: Text(
-                                  category.key ?? 'أخرى',
+                                  category.key ??
+                                      (tracking ? 'أخرى' : 'غير مصنف'),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: AppType.body,
@@ -437,7 +477,9 @@ class _TimeDistribution extends StatelessWidget {
                           style: AppType.caption,
                         ),
                         Text(
-                          durationLabel(category.value),
+                          tracking
+                              ? durationLabel(category.value)
+                              : 'المهام: ${category.value}',
                           style: AppType.caption,
                         ),
                       ],

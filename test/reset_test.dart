@@ -87,6 +87,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('إعادة الضبط'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('إعادة الضبط'));
     await tester.pumpAndSettle();
     expect(find.textContaining('ولا يمكن استرجاع البيانات'), findsOneWidget);
@@ -124,6 +125,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('إعادة الضبط'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('إعادة الضبط'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('حذف جميع البيانات'));

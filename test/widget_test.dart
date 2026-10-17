@@ -321,13 +321,16 @@ void main() {
     expect(find.byType(SettingsScreen), findsOneWidget);
     for (final label in [
       'اليوم المنطقي',
+      'تتبع الوقت',
       'الحفظ الاحتياطي',
       'سياسة الخصوصية',
       'عن التطبيق',
       'إعادة الضبط',
     ]) {
+      await tester.scrollUntilVisible(find.text(label), 100);
       expect(find.text(label), findsOneWidget);
     }
+    await tester.scrollUntilVisible(find.text('اليوم المنطقي'), -100);
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text('حدد الساعة التي يبدأ عندها يوم جديد'), findsOneWidget);
     expect(find.text('قريباً'), findsOneWidget);

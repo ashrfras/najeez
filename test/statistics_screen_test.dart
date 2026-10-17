@@ -20,6 +20,7 @@ void main() {
     List<Task> tasks, {
     double width = 390,
     int startMinutes = 0,
+    bool tracking = true,
   }) async {
     tester.view.physicalSize = Size(width, 844);
     tester.view.devicePixelRatio = 1;
@@ -31,6 +32,7 @@ void main() {
     final controller = TaskController(repository, clock: () => now);
     await controller.load();
     await controller.setLogicalDayStart(startMinutes);
+    await controller.setTimeTrackingEnabled(tracking);
     addTearDown(controller.dispose);
     await tester.pumpWidget(
       MaterialApp(
@@ -77,6 +79,91 @@ void main() {
           : [TimeEntry(id: title, minutes: minutes, createdAt: completed)],
     );
   }
+
+  testWidgets(
+    'task mode counts only completions, includes untagged and restores time',
+    (tester) async {
+      final controller = await mount(
+        tester,
+        [
+          task('مهمة عمل', 11, minutes: 90, tag: 'عمل'),
+          task('مهمة ثانية', 10, tag: 'عمل'),
+          task('بدون تصنيف', 9),
+          task('تصنيف فارغ', 8, tag: '  '),
+          task('قبل بداية اليوم', 3, tag: 'سابق'),
+          task('قديمة', 8, date: DateTime(2026, 10, 9, 8), tag: 'قديم'),
+          task(
+            'مفتوحة',
+            8,
+            minutes: 900,
+            tag: 'مفتوح',
+          ).copyWith(clearCompletedAt: true),
+          task(
+            'محذوفة',
+            8,
+            minutes: 900,
+            tag: 'محذوف',
+          ).copyWith(isDeleted: true),
+        ],
+        tracking: false,
+        startMinutes: 240,
+        width: 320,
+      );
+      expect(find.text('الوقت المسجل'), findsNothing);
+      expect(find.text('عمل'), findsNWidgets(2));
+      expect(find.text('غير مصنف'), findsNWidgets(2));
+      expect(find.text('40%'), findsNWidgets(2)); // Weekly: two of five each.
+      expect(find.text('50%'), findsNWidgets(2)); // Today: two of four each.
+      expect(find.text('20%'), findsOneWidget);
+    expect(find.text('المهام: 2'), findsNWidgets(4));
+    expect(find.text('المهام: 1'), findsOneWidget);
+      expect(find.text('مفتوح'), findsNothing);
+      expect(find.text('محذوف'), findsNothing);
+      expect(find.text('قديم'), findsNothing);
+      expect(find.textContaining('◷'), findsNothing);
+      expect(find.text('11:00'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await controller.setTimeTrackingEnabled(true);
+      await tester.pumpAndSettle();
+      expect(find.text('الوقت المسجل'), findsOneWidget);
+      expect(find.text('مفتوح'), findsNWidgets(2));
+      expect(find.text('11:00'), findsOneWidget);
+      expect(find.textContaining('◷'), findsOneWidget);
+      expect(
+        controller.tasks
+            .firstWhere((task) => task.id == 'مهمة عمل')
+            .totalMinutes,
+        90,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'task mode hides time-only history and handles empty distribution',
+    (tester) async {
+      await mount(tester, [
+        task(
+          'وقت قديم',
+          8,
+          minutes: 90,
+          date: DateTime(2026, 1, 1),
+        ).copyWith(clearCompletedAt: true),
+      ], tracking: false);
+      expect(find.text('لا توجد مهام مكتملة خلال هذه الفترة'), findsOneWidget);
+      expect(find.textContaining('وقت مسجل'), findsNothing);
+      expect(
+        tester
+            .widget<ListView>(find.byType(ListView))
+            .childrenDelegate
+            .estimatedChildCount,
+        8,
+      );
+      await tester.scrollUntilVisible(find.text('الأحد، 11 أكتوبر'), 250);
+      expect(find.text('عرض أيام سابقة'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('latest two tasks, reveal, collapse and closed previous days', (
     tester,
@@ -196,7 +283,7 @@ void main() {
     await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-    await mount(tester, [
+    final controller = await mount(tester, [
       task('إنهاء واجهة الإحصاءات', 11, minutes: 120, tag: 'البرمجة'),
       task(
         'تحضير المحتوى الجديد',
@@ -220,6 +307,20 @@ void main() {
     });
     tester.platformDispatcher.textScaleFactorTestValue = 1.6;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
+    await controller.setTimeTrackingEnabled(false);
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      final image = await boundary.toImage(pixelRatio: 2);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      await File(
+        '/tmp/najeez-statistics-tasks.png',
+      ).writeAsBytes(data!.buffer.asUint8List());
+      image.dispose();
+    });
+    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

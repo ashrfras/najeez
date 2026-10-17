@@ -9,11 +9,25 @@ class DayStatistics {
   final DateTime day;
   final List<Task> completedTasks = [];
   final Map<String?, int> minutesByTag = {};
+  Map<String?, int> get completedByTag {
+    final counts = <String?, int>{};
+    for (final task in completedTasks) {
+      final tag = task.tag?.trim();
+      final category = tag == null || tag.isEmpty ? null : tag;
+      counts.update(category, (count) => count + 1, ifAbsent: () => 1);
+    }
+    return counts;
+  }
+
   int get totalMinutes => minutesByTag.values.fold(0, (a, b) => a + b);
 }
 
 class StatisticsIndex {
-  StatisticsIndex(Iterable<Task> tasks, LogicalDay logicalDay) {
+  StatisticsIndex(
+    Iterable<Task> tasks,
+    LogicalDay logicalDay, {
+    bool includeTime = true,
+  }) {
     for (final task in tasks) {
       if (task.isDeleted) continue;
       if (task.completedAt case final completedAt?) {
@@ -21,6 +35,7 @@ class StatisticsIndex {
       }
       final tag = task.tag?.trim();
       final category = tag == null || tag.isEmpty ? null : tag;
+      if (!includeTime) continue;
       for (final entry in task.timeEntries) {
         if (entry.minutes <= 0) continue;
         day(logicalDay.dayOf(entry.createdAt)).minutesByTag.update(

@@ -71,6 +71,14 @@ class SettingsScreen extends StatelessWidget {
                       trailing: startTimeLabel(controller),
                       onTap: () => _chooseLogicalDay(context),
                     ),
+                    _SettingsItem(
+                      Icons.timer_outlined,
+                      'تتبع الوقت',
+                      subtitle: 'سجّل الوقت الذي تقضيه على مهامك',
+                      trailingWidget: _TimeTrackingSwitch(
+                        controller: controller,
+                      ),
+                    ),
                     const _SettingsItem(
                       Icons.backup_outlined,
                       'الحفظ الاحتياطي',
@@ -368,6 +376,7 @@ class _SettingsItem {
     this.color = AppColors.muted,
     this.subtitle,
     this.trailing,
+    this.trailingWidget,
     this.onTap,
   });
 
@@ -376,6 +385,7 @@ class _SettingsItem {
   final Color color;
   final String? subtitle;
   final String? trailing;
+  final Widget? trailingWidget;
   final VoidCallback? onTap;
 }
 
@@ -438,7 +448,9 @@ class _SettingsGroup extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (items[index].trailing != null ||
+                      if (items[index].trailingWidget != null)
+                        items[index].trailingWidget!
+                      else if (items[index].trailing != null ||
                           items[index].onTap == null)
                         Text(
                           items[index].trailing ?? 'قريباً',
@@ -459,5 +471,66 @@ class _SettingsGroup extends StatelessWidget {
         ),
       ),
     ],
+  );
+}
+
+class _TimeTrackingSwitch extends StatefulWidget {
+  const _TimeTrackingSwitch({required this.controller});
+  final TaskController controller;
+
+  @override
+  State<_TimeTrackingSwitch> createState() => _TimeTrackingSwitchState();
+}
+
+class _TimeTrackingSwitchState extends State<_TimeTrackingSwitch> {
+  bool _saving = false;
+
+  Future<void> _change(bool enabled) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          scrollable: true,
+          title: Text(enabled ? 'تفعيل تتبع الوقت؟' : 'تعطيل تتبع الوقت؟'),
+          content: Text(
+            enabled
+                ? 'ستتمكن من تسجيل الوقت الذي تقضيه على مهامك، وستعتمد الإحصاءات على الوقت المسجل وتوزيعه بين التصنيفات.\n\nسيُعاد عرض جميع الأوقات التي سجلتها سابقاً، إن وجدت.'
+                : 'سيتم إخفاء أدوات تسجيل الوقت، وستعتمد الإحصاءات على عدد المهام المكتملة بدلاً من الوقت المقضي.\n\nستبقى جميع الأوقات المسجلة محفوظة، ويمكنك استعادتها بإعادة تفعيل الميزة في أي وقت.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(enabled ? 'تفعيل' : 'تعطيل'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      await widget.controller.setTimeTrackingEnabled(enabled);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر حفظ الإعداد. حاول مرة أخرى.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'تتبع الوقت',
+    child: Switch.adaptive(
+      padding: EdgeInsets.zero,
+      value: widget.controller.timeTrackingEnabled,
+      onChanged: _saving ? null : _change,
+    ),
   );
 }

@@ -102,6 +102,25 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<bool> getTimeTrackingEnabled() async {
+    final rows = await _database.query(
+      'settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: ['time_tracking_enabled'],
+    );
+    return rows.isEmpty || rows.single['value'] != 'false';
+  }
+
+  @override
+  Future<void> setTimeTrackingEnabled(bool enabled) async {
+    await _database.insert('settings', {
+      'key': 'time_tracking_enabled',
+      'value': '$enabled',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
   Future<void> reset() async {
     await _database.transaction((transaction) async {
       await transaction.delete('tasks');

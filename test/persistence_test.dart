@@ -14,6 +14,8 @@ void main() {
     final created = DateTime(2026, 10, 11, 10, 24);
     final repository = await SqliteTaskRepository.open(databasePath: dbPath);
     expect(await repository.getLogicalDayStartMinutes(), 0);
+    expect(await repository.getTimeTrackingEnabled(), isTrue);
+    await repository.setTimeTrackingEnabled(false);
     await repository.setLogicalDayStartMinutes(240);
     await repository.upsertTask(
       Task(
@@ -34,6 +36,9 @@ void main() {
     final reopened = await SqliteTaskRepository.open(databasePath: dbPath);
     final task = (await reopened.getTasks()).single;
     expect(await reopened.getLogicalDayStartMinutes(), 240);
+    expect(await reopened.getTimeTrackingEnabled(), isFalse);
+    await reopened.setTimeTrackingEnabled(true);
+    expect((await reopened.getTasks()).single.totalMinutes, 95);
     expect(task.id, 'stable-id');
     expect(task.completedAt, created);
     expect(task.isDeleted, isTrue);
@@ -41,6 +46,13 @@ void main() {
     expect(task.totalMinutes, 95);
     expect(task.timeEntries.single.id, 'entry-1');
     await reopened.close();
+    final enabled = await SqliteTaskRepository.open(databasePath: dbPath);
+    expect(await enabled.getTimeTrackingEnabled(), isTrue);
+    expect((await enabled.getTasks()).single.totalMinutes, 95);
+    await enabled.setTimeTrackingEnabled(false);
+    await enabled.reset();
+    expect(await enabled.getTimeTrackingEnabled(), isTrue);
+    await enabled.close();
     await directory.delete(recursive: true);
   });
 
