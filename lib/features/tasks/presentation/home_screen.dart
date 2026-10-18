@@ -9,6 +9,7 @@ import '../../statistics/presentation/statistics_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
+import '../domain/task_dates.dart';
 import '../domain/work_time_stats.dart';
 import '../domain/completion_stats.dart';
 import 'task_composer_screen.dart';
@@ -83,125 +84,159 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _showActions(Task task) => showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: AppColors.surface,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-    ),
-    builder: (sheetContext) => SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 17),
-              Text(
-                task.title,
-                textAlign: TextAlign.center,
-                style: AppType.section,
-              ),
-              if (widget.controller.timeTrackingEnabled) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
-                  style: AppType.caption,
-                ),
-              ],
-              if (task.completedAt != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  widget.controller.timeTrackingEnabled
-                      ? 'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}'
-                      : 'اكتملت: ${arabicDate(task.completedAt!)}',
-                  style: AppType.caption,
-                ),
-              ],
-              const SizedBox(height: 18),
-              if (widget.controller.timeTrackingEnabled)
-                _action(
-                  Icons.add_alarm_outlined,
-                  'إضافة وقت',
-                  AppColors.blue,
-                  () => _addTime(task),
-                ),
-              if (widget.controller.timeTrackingEnabled &&
-                  task.timeEntries.isNotEmpty)
-                _action(
-                  Icons.history,
-                  'عرض إدخالات الوقت (${task.timeEntries.length})',
-                  AppColors.blue,
-                  () => _showTimeEntries(task),
-                ),
-              if (task.isCompleted)
-                _action(
-                  Icons.undo,
-                  'إعادة إلى المهام',
-                  AppColors.green,
-                  () => widget.controller.restore(task),
-                )
-              else ...[
-                if (widget.controller.canPin(task))
-                  _action(
-                    task.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    task.isPinned ? 'إلغاء التثبيت' : 'تثبيت المهمة',
-                    AppColors.blue,
-                    () => widget.controller.setPinned(task, !task.isPinned),
+  void _showActions(Task task) {
+    final currentBucket = visibleBucket(
+      task,
+      widget.controller.now,
+      widget.controller.logicalDay,
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(4),
                   ),
+                ),
+                const SizedBox(height: 17),
+                Text(
+                  task.title,
+                  textAlign: TextAlign.center,
+                  style: AppType.section,
+                ),
+                if (widget.controller.timeTrackingEnabled) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
+                    style: AppType.caption,
+                  ),
+                ],
+                if (task.completedAt != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.controller.timeTrackingEnabled
+                        ? 'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}'
+                        : 'اكتملت: ${arabicDate(task.completedAt!)}',
+                    style: AppType.caption,
+                  ),
+                ],
+                const SizedBox(height: 18),
+                if (widget.controller.timeTrackingEnabled)
+                  _action(
+                    Icons.add_alarm_outlined,
+                    'إضافة وقت',
+                    AppColors.blue,
+                    () => _addTime(task),
+                  ),
+                if (widget.controller.timeTrackingEnabled &&
+                    task.timeEntries.isNotEmpty)
+                  _action(
+                    Icons.history,
+                    'عرض إدخالات الوقت (${task.timeEntries.length})',
+                    AppColors.blue,
+                    () => _showTimeEntries(task),
+                  ),
+                if (task.isCompleted)
+                  _action(
+                    Icons.undo,
+                    'إعادة إلى المهام',
+                    AppColors.green,
+                    () => widget.controller.restore(task),
+                  )
+                else ...[
+                  if (widget.controller.canPin(task))
+                    _action(
+                      task.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      task.isPinned ? 'إلغاء التثبيت' : 'تثبيت المهمة',
+                      AppColors.blue,
+                      () => widget.controller.setPinned(task, !task.isPinned),
+                      iconRotation: math.pi / 8,
+                    ),
+                  _action(
+                    Icons.check_circle_outline,
+                    'تمت المهمة',
+                    AppColors.green,
+                    () => widget.controller.complete(task),
+                    celebrate: true,
+                  ),
+                  if (currentBucket != TaskBucket.today)
+                    _action(
+                      Icons.adjust,
+                      'نقل إلى اليوم',
+                      AppColors.blue,
+                      () => widget.controller.move(task, TaskBucket.today),
+                    ),
+                  if (currentBucket != TaskBucket.tomorrow)
+                    _action(
+                      Icons.calendar_month_outlined,
+                      'نقل إلى غداً',
+                      AppColors.blue,
+                      () => widget.controller.move(task, TaskBucket.tomorrow),
+                    ),
+                  if (currentBucket != TaskBucket.later)
+                    _action(
+                      Icons.all_inclusive,
+                      'نقل إلى لاحقاً',
+                      AppColors.orange,
+                      () => widget.controller.move(task, TaskBucket.later),
+                    ),
+                ],
                 _action(
-                  Icons.check_circle_outline,
-                  'تمت المهمة',
-                  AppColors.green,
-                  () => widget.controller.complete(task),
-                  celebrate: true,
+                  Icons.edit_outlined,
+                  'تعديل المهمة',
+                  AppColors.muted,
+                  () => _edit(task),
                 ),
                 _action(
-                  Icons.adjust,
-                  'نقل إلى اليوم',
-                  AppColors.blue,
-                  () => widget.controller.move(task, TaskBucket.today),
-                ),
-                _action(
-                  Icons.calendar_month_outlined,
-                  'نقل إلى غداً',
-                  AppColors.blue,
-                  () => widget.controller.move(task, TaskBucket.tomorrow),
-                ),
-                _action(
-                  Icons.all_inclusive,
-                  'نقل إلى لاحقاً',
-                  AppColors.orange,
-                  () => widget.controller.move(task, TaskBucket.later),
+                  Icons.delete_outline,
+                  'حذف المهمة',
+                  AppColors.red,
+                  () => _confirmDelete(task),
                 ),
               ],
-              _action(
-                Icons.edit_outlined,
-                'تعديل المهمة',
-                AppColors.muted,
-                () => _edit(task),
-              ),
-              _action(
-                Icons.delete_outline,
-                'حذف المهمة',
-                AppColors.red,
-                () => widget.controller.delete(task),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Future<void> _confirmDelete(Task task) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف المهمة؟'),
+        content: Text('هل تريد حذف المهمة «${task.title}»؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await widget.controller.delete(task);
+  }
 
   Future<void> _showTimeEntries(Task task) => showModalBottomSheet<void>(
     context: context,
@@ -449,6 +484,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Color color,
     Future<void> Function() callback, {
     bool celebrate = false,
+    double iconRotation = 0,
   }) {
     var celebrating = false;
     return StatefulBuilder(
@@ -484,10 +520,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 scale: celebrating ? 1.3 : 1,
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.easeOutBack,
-                child: Icon(
-                  celebrating ? Icons.check_circle : icon,
-                  color: color,
-                  size: 22,
+                child: Transform.rotate(
+                  angle: iconRotation,
+                  child: Icon(
+                    celebrating ? Icons.check_circle : icon,
+                    color: color,
+                    size: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 15),

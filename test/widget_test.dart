@@ -52,6 +52,47 @@ class RecordingCanvas extends Fake implements Canvas {
 }
 
 void main() {
+  testWidgets('task deletion requires explicit confirmation', (tester) async {
+    final repository = MemoryRepository();
+    final controller = TaskController(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    await controller.create('مهمة للحذف');
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> openDeleteConfirmation() async {
+      await tester.longPress(find.text('مهمة للحذف'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('حذف المهمة'));
+      await tester.tap(find.text('حذف المهمة'));
+      await tester.pumpAndSettle();
+      expect(find.text('حذف المهمة؟'), findsOneWidget);
+      expect(controller.tasks, hasLength(1));
+      expect(repository.tasks.single.isDeleted, isFalse);
+    }
+
+    await openDeleteConfirmation();
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks, hasLength(1));
+
+    await openDeleteConfirmation();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(controller.tasks, hasLength(1));
+
+    await openDeleteConfirmation();
+    await tester.tap(find.widgetWithText(FilledButton, 'حذف'));
+    await tester.pumpAndSettle();
+    expect(controller.tasks, isEmpty);
+    expect(repository.tasks.single.isDeleted, isTrue);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
   testWidgets(
     'settings opens privacy and reads the installed release details',
     (tester) async {
