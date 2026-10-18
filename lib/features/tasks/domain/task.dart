@@ -28,6 +28,7 @@ class Task {
     required this.createdAt,
     required this.updatedAt,
     this.completedAt,
+    this.pinnedAt,
     this.scheduledDate,
     this.tag,
     this.isDeleted = false,
@@ -40,12 +41,14 @@ class Task {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? completedAt;
+  final DateTime? pinnedAt;
   final DateTime? scheduledDate;
   final String? tag;
   final bool isDeleted;
   final List<TimeEntry> timeEntries;
 
   bool get isCompleted => completedAt != null;
+  bool get isPinned => pinnedAt != null;
   int get totalMinutes =>
       timeEntries.fold(0, (sum, entry) => sum + entry.minutes);
 
@@ -54,9 +57,11 @@ class Task {
     TaskBucket? bucket,
     DateTime? updatedAt,
     DateTime? completedAt,
+    DateTime? pinnedAt,
     DateTime? scheduledDate,
     String? tag,
     bool clearCompletedAt = false,
+    bool clearPinnedAt = false,
     bool clearScheduledDate = false,
     bool clearTag = false,
     bool? isDeleted,
@@ -68,6 +73,7 @@ class Task {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
+    pinnedAt: clearPinnedAt ? null : pinnedAt ?? this.pinnedAt,
     scheduledDate: clearScheduledDate
         ? null
         : scheduledDate ?? this.scheduledDate,

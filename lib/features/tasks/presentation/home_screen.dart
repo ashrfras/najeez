@@ -151,6 +151,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   () => widget.controller.restore(task),
                 )
               else ...[
+                if (widget.controller.canPin(task))
+                  _action(
+                    task.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    task.isPinned ? 'إلغاء التثبيت' : 'تثبيت المهمة',
+                    AppColors.blue,
+                    () => widget.controller.setPinned(task, !task.isPinned),
+                  ),
                 _action(
                   Icons.check_circle_outline,
                   'تمت المهمة',

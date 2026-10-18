@@ -46,13 +46,17 @@ extension TaskListKindDetails on TaskListKind {
       TaskListKind.later => TaskBucket.later,
       TaskListKind.completedToday => throw StateError('Handled above'),
     };
-    return controller.tasks
+    final selected = controller.tasks
         .where(
           (task) =>
               !task.isCompleted &&
               visibleBucket(task, now, controller.logicalDay) == bucket,
         )
         .toList();
+    if (this != TaskListKind.today) return selected;
+    final pinned = selected.where((task) => task.isPinned).toList()
+      ..sort((a, b) => b.pinnedAt!.compareTo(a.pinnedAt!));
+    return [...pinned, ...selected.where((task) => !task.isPinned)];
   }
 }
 

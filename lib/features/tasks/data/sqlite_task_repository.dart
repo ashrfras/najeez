@@ -17,7 +17,7 @@ class SqliteTaskRepository implements TaskRepository {
         (kIsWeb ? 'baqi.db' : path.join(await getDatabasesPath(), 'baqi.db'));
     final database = await openDatabase(
       location,
-      version: 5,
+      version: 6,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks (
@@ -27,6 +27,7 @@ class SqliteTaskRepository implements TaskRepository {
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             completed_at TEXT,
+            pinned_at TEXT,
             scheduled_date TEXT,
             tag TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0,
@@ -61,6 +62,9 @@ class SqliteTaskRepository implements TaskRepository {
           await db.execute(
             'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
           );
+        }
+        if (oldVersion < 6) {
+          await db.execute('ALTER TABLE tasks ADD COLUMN pinned_at TEXT');
         }
       },
     );
@@ -138,6 +142,7 @@ class SqliteTaskRepository implements TaskRepository {
     createdAt: DateTime.parse(row['created_at'] as String),
     updatedAt: DateTime.parse(row['updated_at'] as String),
     completedAt: _date(row['completed_at']),
+    pinnedAt: _date(row['pinned_at']),
     scheduledDate: _date(row['scheduled_date']),
     tag: row['tag'] as String?,
     isDeleted: row['is_deleted'] == 1,
@@ -163,6 +168,7 @@ class SqliteTaskRepository implements TaskRepository {
     'created_at': task.createdAt.toIso8601String(),
     'updated_at': task.updatedAt.toIso8601String(),
     'completed_at': task.completedAt?.toIso8601String(),
+    'pinned_at': task.pinnedAt?.toIso8601String(),
     'scheduled_date': task.scheduledDate?.toIso8601String(),
     'tag': task.tag,
     'is_deleted': task.isDeleted ? 1 : 0,

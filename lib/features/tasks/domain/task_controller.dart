@@ -93,14 +93,48 @@ class TaskController extends ChangeNotifier {
     );
   }
 
+  Task _current(Task task) => _tasks.firstWhere((item) => item.id == task.id);
+
+  bool canPin(Task task) =>
+      !task.isDeleted &&
+      !task.isCompleted &&
+      visibleBucket(task, now, logicalDay) == TaskBucket.today;
+
+  Future<void> setPinned(Task task, bool pinned) async {
+    task = _current(task);
+    if (pinned && !canPin(task)) return;
+    if (task.isPinned == pinned) return;
+    var timestamp = now;
+    if (pinned) {
+      // Preserve pin order even when the clock has not advanced or moves back.
+      for (final item in _tasks) {
+        final previous = item.pinnedAt;
+        if (previous != null && !timestamp.isAfter(previous)) {
+          timestamp = previous.add(const Duration(microseconds: 1));
+        }
+      }
+    }
+    await _save(
+      task.copyWith(
+        pinnedAt: pinned ? timestamp : null,
+        clearPinnedAt: !pinned,
+        updatedAt: now,
+        bucket: pinned ? TaskBucket.today : null,
+        clearScheduledDate: pinned,
+      ),
+    );
+  }
+
   Future<void> complete(Task task) =>
-      _save(task.copyWith(completedAt: now, updatedAt: now));
+      _save(_current(task).copyWith(completedAt: now, updatedAt: now));
 
   Future<void> restore(Task task) {
+    task = _current(task);
     final bucket = visibleBucket(task, now, logicalDay);
     return _save(
       task.copyWith(
         clearCompletedAt: true,
+        clearPinnedAt: true,
         updatedAt: now,
         bucket: bucket,
         scheduledDate: scheduleFor(bucket, now, logicalDay),
@@ -110,7 +144,7 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> move(Task task, TaskBucket bucket) => _save(
-    task.copyWith(
+    _current(task).copyWith(
       bucket: bucket,
       updatedAt: now,
       scheduledDate: scheduleFor(bucket, now, logicalDay),
@@ -146,7 +180,7 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> delete(Task task) =>
-      _save(task.copyWith(isDeleted: true, updatedAt: now));
+      _save(_current(task).copyWith(isDeleted: true, updatedAt: now));
 
   Future<void> addTimeEntry(
     Task task, {
@@ -190,6 +224,9 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> _save(Task task) async {
+    if (task.isPinned && !canPin(task)) {
+      task = task.copyWith(clearPinnedAt: true);
+    }
     final previous = _tasks;
     _tasks = [task, ..._tasks.where((item) => item.id != task.id)];
     error = null;

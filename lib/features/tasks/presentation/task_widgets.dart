@@ -82,125 +82,141 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
             heightFactor: 1 - exit,
             child: Opacity(
               opacity: 1 - exit,
-              child: InkWell(
-                onTap: widget.onActions,
-                onLongPress: widget.onActions,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _toggle,
-                        child: SizedBox(
-                          width: widget.dense ? 18 : 23,
-                          height: widget.dense ? 18 : 23,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.center,
-                            children: [
-                              if (progress > 0 && progress < 1)
+              child: Material(
+                color: widget.task.isPinned
+                    ? AppColors.blue.withValues(alpha: .06)
+                    : Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onActions,
+                  onLongPress: widget.onActions,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _toggle,
+                          child: SizedBox(
+                            width: widget.dense ? 18 : 23,
+                            height: widget.dense ? 18 : 23,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                if (progress > 0 && progress < 1)
+                                  Transform.scale(
+                                    scale: 1 + progress * .85,
+                                    child: Container(
+                                      width: widget.dense ? 18 : 23,
+                                      height: widget.dense ? 18 : 23,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.green.withValues(
+                                            alpha: (1 - progress) * .7,
+                                          ),
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 Transform.scale(
-                                  scale: 1 + progress * .85,
+                                  scale: 1 + .16 * math.sin(progress * math.pi),
                                   child: Container(
                                     width: widget.dense ? 18 : 23,
                                     height: widget.dense ? 18 : 23,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
+                                      color: fill,
                                       border: Border.all(
-                                        color: AppColors.green.withValues(
-                                          alpha: (1 - progress) * .7,
-                                        ),
-                                        width: 2,
+                                        color: checked
+                                            ? AppColors.green
+                                            : AppColors.muted,
+                                        width: widget.dense ? 1.4 : 1.6,
                                       ),
                                     ),
-                                  ),
-                                ),
-                              Transform.scale(
-                                scale: 1 + .16 * math.sin(progress * math.pi),
-                                child: Container(
-                                  width: widget.dense ? 18 : 23,
-                                  height: widget.dense ? 18 : 23,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: fill,
-                                    border: Border.all(
-                                      color: checked
-                                          ? AppColors.green
-                                          : AppColors.muted,
-                                      width: widget.dense ? 1.4 : 1.6,
-                                    ),
-                                  ),
-                                  child: checked
-                                      ? Transform.scale(
-                                          scale: widget.task.isCompleted
-                                              ? 1
-                                              : Curves.elasticOut.transform(
-                                                  ((progress - .12) / .7).clamp(
-                                                    0.0,
-                                                    1.0,
+                                    child: checked
+                                        ? Transform.scale(
+                                            scale: widget.task.isCompleted
+                                                ? 1
+                                                : Curves.elasticOut.transform(
+                                                    ((progress - .12) / .7)
+                                                        .clamp(0.0, 1.0),
                                                   ),
-                                                ),
-                                          child: Icon(
-                                            Icons.check,
-                                            size: widget.dense ? 13 : 17,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : null,
+                                            child: Icon(
+                                              Icons.check,
+                                              size: widget.dense ? 13 : 17,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: widget.dense ? 7 : 11),
-                      Expanded(
-                        child: CustomPaint(
-                          foregroundPainter: _TaskStrikePainter(
-                            text: widget.task.title,
-                            style: DefaultTextStyle.of(
-                              context,
-                            ).style.merge(AppType.body),
-                            direction: Directionality.of(context),
-                            textScaler: MediaQuery.textScalerOf(context),
-                            maxLines: widget.dense ? 1 : 2,
-                            progress: strike,
-                          ),
-                          child: Text(
-                            widget.task.title,
-                            maxLines: widget.dense ? 1 : 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppType.body.copyWith(
-                              color: Color.lerp(
-                                widget.task.isCompleted
-                                    ? AppColors.muted
-                                    : AppColors.text,
-                                AppColors.muted,
-                                progress,
+                        SizedBox(width: widget.dense ? 7 : 11),
+                        Expanded(
+                          child: CustomPaint(
+                            foregroundPainter: _TaskStrikePainter(
+                              text: widget.task.title,
+                              style: DefaultTextStyle.of(
+                                context,
+                              ).style.merge(AppType.body),
+                              direction: Directionality.of(context),
+                              textScaler: MediaQuery.textScalerOf(context),
+                              maxLines: widget.dense ? 1 : 2,
+                              progress: strike,
+                            ),
+                            child: Text(
+                              widget.task.title,
+                              maxLines: widget.dense ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.body.copyWith(
+                                color: Color.lerp(
+                                  widget.task.isCompleted
+                                      ? AppColors.muted
+                                      : AppColors.text,
+                                  AppColors.muted,
+                                  progress,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      if (widget.showTime && widget.task.totalMinutes > 0) ...[
-                        const SizedBox(width: 7),
-                        Text(
-                          '◷ ${durationLabel(widget.task.totalMinutes)}',
-                          maxLines: 1,
-                          style: AppType.caption.copyWith(
-                            color: AppColors.blue,
-                            fontSize: 11,
+                        if (widget.task.isPinned) ...[
+                          const SizedBox(width: 7),
+                          Transform.rotate(
+                            angle: math.pi / 8,
+                            child: const Icon(
+                              Icons.push_pin,
+                              size: 15,
+                              color: AppColors.blue,
+                              semanticLabel: 'مهمة مثبتة',
+                            ),
                           ),
-                        ),
+                        ],
+                        if (widget.showTime &&
+                            widget.task.totalMinutes > 0) ...[
+                          const SizedBox(width: 7),
+                          Text(
+                            '◷ ${durationLabel(widget.task.totalMinutes)}',
+                            maxLines: 1,
+                            style: AppType.caption.copyWith(
+                              color: AppColors.blue,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                        if (widget.task.tag != null) ...[
+                          const SizedBox(width: 7),
+                          _TagBadge(label: widget.task.tag!),
+                        ],
                       ],
-                      if (widget.task.tag != null) ...[
-                        const SizedBox(width: 7),
-                        _TagBadge(label: widget.task.tag!),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
