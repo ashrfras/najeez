@@ -105,8 +105,13 @@ void main() {
       expect(find.text('4س 30د'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
-      await tester.tap(find.byType(Switch));
+      expect(
+        tester
+            .widget<Switch>(find.byKey(const ValueKey('time-tracking-switch')))
+            .value,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('time-tracking-switch')));
       await tester.pumpAndSettle();
       expect(find.text('تعطيل تتبع الوقت؟'), findsOneWidget);
       expect(
@@ -119,8 +124,13 @@ void main() {
       expect(controller.timeTrackingEnabled, isTrue);
       await tester.tap(find.text('إلغاء'));
       await tester.pumpAndSettle();
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
-      await tester.tap(find.byType(Switch));
+      expect(
+        tester
+            .widget<Switch>(find.byKey(const ValueKey('time-tracking-switch')))
+            .value,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('time-tracking-switch')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('تعطيل'));
       await tester.pumpAndSettle();
@@ -146,7 +156,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byKey(const ValueKey('time-tracking-switch')));
       await tester.pumpAndSettle();
       expect(find.text('تفعيل تتبع الوقت؟'), findsOneWidget);
       expect(
@@ -159,8 +169,13 @@ void main() {
       expect(controller.timeTrackingEnabled, isFalse);
       await tester.tap(find.text('إلغاء'));
       await tester.pumpAndSettle();
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
-      await tester.tap(find.byType(Switch));
+      expect(
+        tester
+            .widget<Switch>(find.byKey(const ValueKey('time-tracking-switch')))
+            .value,
+        isFalse,
+      );
+      await tester.tap(find.byKey(const ValueKey('time-tracking-switch')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('تفعيل'));
       await tester.pumpAndSettle();

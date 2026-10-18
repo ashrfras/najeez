@@ -79,10 +79,6 @@ class SettingsScreen extends StatelessWidget {
                         controller: controller,
                       ),
                     ),
-                    const _SettingsItem(
-                      Icons.backup_outlined,
-                      'الحفظ الاحتياطي',
-                    ),
                   ],
                 ),
                 const SizedBox(height: 25),
@@ -113,6 +109,10 @@ class SettingsScreen extends StatelessWidget {
                 _SettingsGroup(
                   title: 'البيانات',
                   items: [
+                    const _SettingsItem(
+                      Icons.backup_outlined,
+                      'الحفظ الاحتياطي',
+                    ),
                     _SettingsItem(
                       Icons.restart_alt_rounded,
                       'إعادة الضبط',
@@ -280,7 +280,7 @@ class _LogicalDayPickerDialogState extends State<_LogicalDayPickerDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'لا ينتهي يوم الجميع عند منتصف الليل.\nاختر الساعة التي يبدأ عندها يومك الجديد. مثلا، إذا اخترت 4 صباحا، فسيظل نجيز يعتبر الوقت قبلها جزءا من يومك السابق.',
+              "لا ينتهي يوم الجميع عند منتصف الليل.\nاختر الساعة التي يبدأ عندها يومك الجديد. مثلا، إذا كنت تعمل حتى 4 صباحا، فسيظل 'نجيز' يعتبر الوقت قبلها جزءا من يومك السابق.",
             ),
             const SizedBox(height: 18),
             Text(
@@ -527,10 +527,25 @@ class _TimeTrackingSwitchState extends State<_TimeTrackingSwitch> {
   @override
   Widget build(BuildContext context) => Semantics(
     label: 'تتبع الوقت',
-    child: Switch.adaptive(
-      padding: EdgeInsets.zero,
-      value: widget.controller.timeTrackingEnabled,
-      onChanged: _saving ? null : _change,
+    child: Transform.scale(
+      scale: .8,
+      alignment: AlignmentDirectional.centerEnd,
+      transformHitTests: false,
+      child: Switch(
+        key: const ValueKey('time-tracking-switch'),
+        padding: EdgeInsets.zero,
+        activeTrackColor: AppColors.blue,
+        activeThumbColor: AppColors.text,
+        inactiveTrackColor: AppColors.surfaceRaised,
+        inactiveThumbColor: AppColors.muted,
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? Colors.transparent
+              : AppColors.border;
+        }),
+        value: widget.controller.timeTrackingEnabled,
+        onChanged: _saving ? null : _change,
+      ),
     ),
   );
 }
