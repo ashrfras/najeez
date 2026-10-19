@@ -124,6 +124,91 @@ class SqliteTaskRepository implements TaskRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<String?> backupSetting(String key) async {
+    final rows = await _database.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['cloud_$key'],
+    );
+    return rows.isEmpty ? null : rows.single['value'] as String;
+  }
+
+  Future<void> setBackupSetting(String key, String value) async {
+    await _database.insert('settings', {
+      'key': 'cloud_$key',
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // Read both tables in one transaction, including soft-deleted/completed tasks.
+  Future<Uint8List> exportBackup() => _database.transaction((txn) async {
+    final tasks = await txn.query('tasks');
+    final settings = await txn.query('settings');
+    return Uint8List.fromList(
+      utf8.encode(
+        jsonEncode({'version': 1, 'tasks': tasks, 'settings': settings}),
+      ),
+    );
+  });
+
+  Future<void> importBackup(Uint8List data, DateTime savedAt) async {
+    final payload = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
+    if (payload['version'] != 1) {
+      throw const FormatException('Unsupported backup version');
+    }
+    final tasks = (payload['tasks'] as List)
+        .map((row) => Map<String, Object?>.from(row as Map))
+        .toList();
+    final settings = (payload['settings'] as List)
+        .map((row) => Map<String, Object?>.from(row as Map))
+        .toList();
+    // Validate before deleting anything. SQL errors also roll back both tables.
+    for (final row in tasks) {
+      _fromRow(row);
+    }
+    for (final row in settings) {
+      final key = row['key'] as String;
+      final value = row['value'] as String;
+      if (key == 'logical_day_start') {
+        final minutes = int.parse(value);
+        if (minutes < 0 || minutes >= 1440) {
+          throw const FormatException('Invalid logical day');
+        }
+      }
+      if (key == 'time_tracking_enabled' &&
+          value != 'true' &&
+          value != 'false') {
+        throw const FormatException('Invalid setting');
+      }
+    }
+    await _database.transaction((txn) async {
+      // Scheduling/consent belongs to this installation, not the source device.
+      final local = await txn.query('settings', where: "key LIKE 'cloud_%'");
+      await txn.delete('tasks');
+      await txn.delete('settings');
+      for (final row in tasks) {
+        await txn.insert('tasks', row);
+      }
+      for (final row in settings) {
+        if (!(row['key'] as String).startsWith('cloud_')) {
+          await txn.insert('settings', row);
+        }
+      }
+      for (final row in local) {
+        await txn.insert('settings', row);
+      }
+      for (final entry in {
+        'cloud_last_success': savedAt.toUtc().toIso8601String(),
+        'cloud_discovery_checked': 'true',
+      }.entries) {
+        await txn.insert('settings', {
+          'key': entry.key,
+          'value': entry.value,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    });
+  }
+
   @override
   Future<void> reset() async {
     await _database.transaction((transaction) async {

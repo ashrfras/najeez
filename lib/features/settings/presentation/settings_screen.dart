@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/design.dart';
 import '../../tasks/domain/task_controller.dart';
 import 'app_info_screen.dart';
+import '../../backup/backup_scope.dart';
+import '../../backup/cloud_backup_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
@@ -14,7 +16,9 @@ class SettingsScreen extends StatelessWidget {
     final didReset = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _ResetDialog(controller: controller),
+      builder: (_) => _ResetDialog(
+        reset: BackupScope.of(context)?.resetLocalData ?? controller.reset,
+      ),
     );
     if (didReset != true || !context.mounted) return;
     Navigator.of(context).popUntil((route) => route.isFirst);
@@ -33,107 +37,121 @@ class SettingsScreen extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: controller,
-    builder: (context, _) => Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 540),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                    ),
-                    const SizedBox(width: 5),
-                    const Flexible(
-                      child: Text(
-                        'الإعدادات',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.title,
+  Widget build(BuildContext context) {
+    final backup = BackupScope.of(context);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                _SettingsGroup(
-                  title: 'إعدادات التطبيق',
-                  items: [
-                    _SettingsItem(
-                      Icons.today_outlined,
-                      'اليوم المنطقي',
-                      subtitle: 'حدد الساعة التي يبدأ عندها يوم جديد',
-                      trailing: startTimeLabel(controller),
-                      onTap: () => _chooseLogicalDay(context),
-                    ),
-                    _SettingsItem(
-                      Icons.timer_outlined,
-                      'تتبع الوقت',
-                      subtitle: 'سجّل الوقت الذي تقضيه على مهامك',
-                      trailingWidget: _TimeTrackingSwitch(
-                        controller: controller,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                _SettingsGroup(
-                  title: 'معلومات',
-                  items: [
-                    _SettingsItem(
-                      Icons.privacy_tip_outlined,
-                      'سياسة الخصوصية',
-                      onTap: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PrivacyScreen(),
+                      const SizedBox(width: 5),
+                      const Flexible(
+                        child: Text(
+                          'الإعدادات',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.title,
                         ),
                       ),
-                    ),
-                    _SettingsItem(
-                      Icons.info_outline,
-                      'عن التطبيق',
-                      onTap: () => Navigator.push<void>(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  _SettingsGroup(
+                    title: 'إعدادات التطبيق',
+                    items: [
+                      _SettingsItem(
+                        Icons.today_outlined,
+                        'اليوم المنطقي',
+                        subtitle: 'حدد الساعة التي يبدأ عندها يوم جديد',
+                        trailing: startTimeLabel(controller),
+                        onTap: () => _chooseLogicalDay(context),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                _SettingsGroup(
-                  title: 'البيانات',
-                  items: [
-                    const _SettingsItem(
-                      Icons.backup_outlined,
-                      'الحفظ الاحتياطي',
-                    ),
-                    _SettingsItem(
-                      Icons.restart_alt_rounded,
-                      'إعادة الضبط',
-                      color: AppColors.red,
-                      onTap: () => _reset(context),
-                    ),
-                  ],
-                ),
-              ],
+                      _SettingsItem(
+                        Icons.timer_outlined,
+                        'تتبع الوقت',
+                        subtitle: 'سجّل الوقت الذي تقضيه على مهامك',
+                        trailingWidget: _TimeTrackingSwitch(
+                          controller: controller,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  _SettingsGroup(
+                    title: 'معلومات',
+                    items: [
+                      _SettingsItem(
+                        Icons.privacy_tip_outlined,
+                        'سياسة الخصوصية',
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyScreen(),
+                          ),
+                        ),
+                      ),
+                      _SettingsItem(
+                        Icons.info_outline,
+                        'عن التطبيق',
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AboutScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  _SettingsGroup(
+                    title: 'البيانات',
+                    items: [
+                      _SettingsItem(
+                        Icons.cloud_outlined,
+                        'الحفظ السحابي',
+                        subtitle: 'الحفظ الإحتياطي للبيانات عبر iCloud',
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CloudBackupScreen(),
+                          ),
+                        ),
+                      ),
+                      _SettingsItem(
+                        Icons.restart_alt_rounded,
+                        'إعادة الضبط',
+                        color: AppColors.red,
+                        onTap: backup?.busy == true
+                            ? null
+                            : () => _reset(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ResetDialog extends StatefulWidget {
-  const _ResetDialog({required this.controller});
+  const _ResetDialog({required this.reset});
 
-  final TaskController controller;
+  final Future<void> Function() reset;
 
   @override
   State<_ResetDialog> createState() => _ResetDialogState();
@@ -150,7 +168,7 @@ class _ResetDialogState extends State<_ResetDialog> {
       _failed = false;
     });
     try {
-      await widget.controller.reset();
+      await widget.reset();
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
       if (mounted) {

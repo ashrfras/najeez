@@ -363,7 +363,7 @@ void main() {
     for (final label in [
       'اليوم المنطقي',
       'تتبع الوقت',
-      'الحفظ الاحتياطي',
+      'الحفظ السحابي',
       'سياسة الخصوصية',
       'عن التطبيق',
       'إعادة الضبط',
@@ -374,7 +374,49 @@ void main() {
     await tester.scrollUntilVisible(find.text('اليوم المنطقي'), -100);
     expect(find.text('00:00'), findsOneWidget);
     expect(find.text('حدد الساعة التي يبدأ عندها يوم جديد'), findsOneWidget);
-    expect(find.text('قريباً'), findsOneWidget);
+    expect(find.text('قريباً'), findsNothing);
+    expect(find.text('الحفظ الإحتياطي للبيانات عبر iCloud'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cloud-backup-switch')), findsNothing);
+    expect(find.text('إنشاء نسخة الآن'), findsNothing);
+    await tester.scrollUntilVisible(find.text('الحفظ السحابي'), 100);
+    await tester.tap(find.text('الحفظ السحابي'));
+    await tester.pumpAndSettle();
+    const unavailableMessage =
+        'الحفظ الاحتياطي متوفر فقط على الأجهزة التي تدعم iCloud.';
+    expect(find.text(unavailableMessage), findsNothing);
+    expect(find.text('تفعيل الحفظ السحابي'), findsNothing);
+    expect(find.textContaining('يمكن إنشاء نسخة'), findsNothing);
+    expect(find.text('آخر نسخة احتياطية ناجحة'), findsOneWidget);
+    final cloudSwitch = tester.widget<Switch>(
+      find.byKey(const ValueKey('cloud-backup-switch')),
+    );
+    expect(cloudSwitch.value, isFalse);
+    expect(cloudSwitch.onChanged, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('cloud-backup-switch')));
+    await tester.pumpAndSettle();
+    expect(find.text(unavailableMessage), findsOneWidget);
+    expect(
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('cloud-backup-switch')))
+          .value,
+      isFalse,
+    );
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    for (final label in ['إنشاء نسخة الآن', 'استعادة النسخة الاحتياطية']) {
+      await tester.scrollUntilVisible(find.text(label), 100);
+      final button = tester.widget<OutlinedButton>(
+        find.ancestor(
+          of: find.text(label),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      expect(button.onPressed, isNull);
+    }
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('اليوم المنطقي'), -100);
     await tester.tap(find.text('اليوم المنطقي'));
     await tester.pumpAndSettle();
     expect(

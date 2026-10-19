@@ -67,3 +67,39 @@ git config --local core.hooksPath .githooks
 ```
 
 If `pubspec.yaml` has unstaged changes, stage or discard them before committing so the hook does not stage unrelated edits.
+
+## iCloud backup (iOS)
+
+Settings provides optional CloudKit backup, off by default. A fixed `user-backup`
+record of type `UserBackup` in the private database holds one JSON `CKAsset`
+(`payload`) and a `Date/Time` field (`savedAt`). The server modification date is
+used as the successful backup date. Updating this record replaces the old asset
+only after a successful save. Concurrent changes from another device fail safely
+rather than overwriting an unseen revision. No notifications, subscriptions,
+background jobs, app accounts, or additional packages are needed.
+
+Before testing on an iCloud device or distributing:
+
+1. In the Apple Developer account for team `MHA5HH6YWR`, enable iCloud/CloudKit
+   for `ma.raqmain.najeez`, create/associate `iCloud.ma.raqmain.najeez`, and
+   regenerate provisioning profiles. `Runner.entitlements` is configured for
+   this container in Debug, Profile, and Release.
+2. Run on a signed iPhone using an Apple account with iCloud enabled. Make a
+   backup in Development to create `UserBackup` with `payload` (Asset) and
+   `savedAt` (Date/Time), or create these fields in CloudKit Console.
+3. Deploy that schema to Production in CloudKit Console before TestFlight or
+   App Store testing. No query indexes are needed; records are fetched by ID.
+4. Verify account unavailable, offline/quota errors, manual backup, restore
+   cancellation, reinstall/another device with the same account, and a return
+   after 24 hours. Simulator builds and unit tests do not verify Apple account,
+   provisioning, production schema, or real CloudKit uploads.
+
+The payload includes every task (including completed and soft-deleted history),
+time entries, tags, pinning, timestamps, and the complete settings table. Restore
+validates the payload and replaces both tables in a single SQLite transaction;
+malformed or unsupported copies leave local data intact. Cloud consent and
+scheduling metadata remain specific to the current installation. A short input
+barrier covers the local restore transaction and controller reload; cloud uploads
+and downloads leave the app usable. Reset clears local consent/scheduling and
+never deletes the cloud record. Disabling automatic backup also keeps that record;
+manual backup and restore remain available.
