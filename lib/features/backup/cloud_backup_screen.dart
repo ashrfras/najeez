@@ -58,7 +58,18 @@ class CloudBackupScreen extends StatelessWidget {
                                     }
                                     backup?.setEnabled(enabled);
                                   },
+                            padding: EdgeInsets.zero,
                             activeTrackColor: AppColors.blue,
+                            activeThumbColor: AppColors.text,
+                            inactiveTrackColor: AppColors.surfaceRaised,
+                            inactiveThumbColor: AppColors.muted,
+                            trackOutlineColor: WidgetStateProperty.resolveWith((
+                              states,
+                            ) {
+                              return states.contains(WidgetState.selected)
+                                  ? Colors.transparent
+                                  : AppColors.border;
+                            }),
                           ),
                         ],
                       ),
@@ -68,10 +79,7 @@ class CloudBackupScreen extends StatelessWidget {
                         style: AppType.caption,
                       ),
                       const Divider(height: 32, color: AppColors.border),
-                      const Text(
-                        'آخر نسخة احتياطية ناجحة',
-                        style: AppType.body,
-                      ),
+                      const Text('آخر نسخة احتياطية', style: AppType.body),
                       const SizedBox(height: 8),
                       Text(
                         backup?.lastSuccess == null
@@ -83,22 +91,30 @@ class CloudBackupScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: ready ? backup.saveNow : null,
-                  icon: const Icon(Icons.backup_outlined),
-                  label: const Text('إنشاء نسخة الآن'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: !ready
-                      ? null
-                      : () => backup.restore(
-                          (date) async =>
-                              context.mounted &&
-                              await confirmBackupRestore(context, date),
-                        ),
-                  icon: const Icon(Icons.restore),
-                  label: const Text('استعادة النسخة الاحتياطية'),
+                Container(
+                  decoration: panel(),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      _BackupAction(
+                        onTap: ready ? backup.saveNow : null,
+                        icon: Icons.backup_outlined,
+                        label: 'إنشاء نسخة الآن',
+                      ),
+                      const Divider(height: 1, color: AppColors.border),
+                      _BackupAction(
+                        onTap: !ready
+                            ? null
+                            : () => backup.restore(
+                                (date) async =>
+                                    context.mounted &&
+                                    await confirmBackupRestore(context, date),
+                              ),
+                        icon: Icons.restore,
+                        label: 'استعادة النسخة الاحتياطية',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -107,4 +123,38 @@ class CloudBackupScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BackupAction extends StatelessWidget {
+  const _BackupAction({required this.icon, required this.label, this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: onTap != null,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Row(
+          children: [
+            Icon(icon, size: 21, color: AppColors.muted),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Text(
+                label,
+                style: AppType.body.copyWith(
+                  color: onTap == null ? AppColors.muted : AppColors.text,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

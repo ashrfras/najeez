@@ -386,7 +386,7 @@ void main() {
     expect(find.text(unavailableMessage), findsNothing);
     expect(find.text('تفعيل الحفظ السحابي'), findsNothing);
     expect(find.textContaining('يمكن إنشاء نسخة'), findsNothing);
-    expect(find.text('آخر نسخة احتياطية ناجحة'), findsOneWidget);
+    expect(find.text('آخر نسخة احتياطية'), findsOneWidget);
     final cloudSwitch = tester.widget<Switch>(
       find.byKey(const ValueKey('cloud-backup-switch')),
     );
@@ -405,13 +405,10 @@ void main() {
     await tester.pumpAndSettle();
     for (final label in ['إنشاء نسخة الآن', 'استعادة النسخة الاحتياطية']) {
       await tester.scrollUntilVisible(find.text(label), 100);
-      final button = tester.widget<OutlinedButton>(
-        find.ancestor(
-          of: find.text(label),
-          matching: find.byType(OutlinedButton),
-        ),
+      final button = tester.widget<InkWell>(
+        find.ancestor(of: find.text(label), matching: find.byType(InkWell)),
       );
-      expect(button.onPressed, isNull);
+      expect(button.onTap, isNull);
     }
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
