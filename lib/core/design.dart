@@ -13,6 +13,34 @@ abstract final class AppColors {
   static const orange = Color(0xFFFFA727);
   static const purple = Color(0xFFBA8AF4);
   static const red = Color(0xFFFF474D);
+
+  // Bright accents remain legible on the app's dark surfaces. Keep the order
+  // stable: category colors are derived from their names and palette indices.
+  static const categoryPalette = <Color>[
+    blue,
+    purple,
+    green,
+    orange,
+    red,
+    Color(0xFF30C7E8), // Cyan.
+    Color(0xFF4DD4B4), // Teal.
+    Color(0xFFB5D96B), // Lime.
+    Color(0xFFF2D46B), // Yellow.
+    Color(0xFFED89BE), // Pink.
+    Color(0xFF929CFA), // Indigo.
+    Color(0xFFF5A48A), // Peach.
+  ];
+
+  /// A stable, automatic color shared by category badges and statistics.
+  static Color category(String? tag) {
+    final label = tag?.trim();
+    if (label == null || label.isEmpty) return muted;
+    final hash = label.runes.fold(
+      0,
+      (value, rune) => (value * 31 + rune) & 0x7fffffff,
+    );
+    return categoryPalette[hash % categoryPalette.length];
+  }
 }
 
 abstract final class AppSpace {

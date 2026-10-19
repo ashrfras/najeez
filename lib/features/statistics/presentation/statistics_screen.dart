@@ -370,22 +370,6 @@ class _CategoryDistribution extends StatelessWidget {
   final bool tracking;
   final DayStatistics statistics;
 
-  Color _color(String? tag) {
-    if (tag == null) return AppColors.muted;
-    const palette = [
-      AppColors.blue,
-      AppColors.purple,
-      AppColors.green,
-      AppColors.orange,
-      AppColors.red,
-    ];
-    final hash = tag.runes.fold(
-      0,
-      (value, rune) => (value * 31 + rune) & 0x7fffffff,
-    );
-    return palette[hash % palette.length];
-  }
-
   @override
   Widget build(BuildContext context) {
     final total = tracking
@@ -422,7 +406,7 @@ class _CategoryDistribution extends StatelessWidget {
                   for (final category in categories)
                     Expanded(
                       flex: category.value,
-                      child: Container(color: _color(category.key)),
+                      child: Container(color: AppColors.category(category.key)),
                     ),
                 ],
               ),
@@ -451,7 +435,7 @@ class _CategoryDistribution extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 5),
                               child: Icon(
                                 Icons.circle,
-                                color: _color(category.key),
+                                color: AppColors.category(category.key),
                                 size: 9,
                               ),
                             ),

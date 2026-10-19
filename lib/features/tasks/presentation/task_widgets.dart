@@ -297,14 +297,17 @@ class _TagBadge extends StatelessWidget {
     constraints: const BoxConstraints(maxWidth: 82),
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
-      color: AppColors.blue.withValues(alpha: .15),
+      color: AppColors.category(label).withValues(alpha: .15),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Text(
       label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: AppType.caption.copyWith(color: AppColors.blue, fontSize: 10),
+      style: AppType.caption.copyWith(
+        color: AppColors.category(label),
+        fontSize: 10,
+      ),
     ),
   );
 }

@@ -218,6 +218,7 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                               for (final tag in tags)
                                 _TagOption(
                                   label: tag,
+                                  color: AppColors.category(tag),
                                   selected: _selectedTag == tag && !_addingTag,
                                   onTap: () => setState(() {
                                     _selectedTag = _selectedTag == tag
@@ -364,10 +365,12 @@ class _TagOption extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.color = AppColors.blue,
   });
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -376,16 +379,11 @@ class _TagOption extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
       decoration: panel(
-        color: selected ? AppColors.blueDim : AppColors.surfaceRaised,
+        color: color.withValues(alpha: selected ? .2 : .1),
         radius: 20,
-        border: selected ? AppColors.blue : AppColors.border,
+        border: selected ? color : AppColors.border,
       ),
-      child: Text(
-        label,
-        style: AppType.caption.copyWith(
-          color: selected ? AppColors.blue : AppColors.text,
-        ),
-      ),
+      child: Text(label, style: AppType.caption.copyWith(color: color)),
     ),
   );
 }
