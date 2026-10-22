@@ -124,6 +124,28 @@ class SqliteTaskRepository implements TaskRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  @override
+  Future<Map<String, int>> getCategoryColors() async {
+    final rows = await _database.query(
+      'settings',
+      where: "key LIKE 'category_color:%'",
+    );
+    return {
+      for (final row in rows)
+        (row['key'] as String).substring('category_color:'.length): int.parse(
+          row['value'] as String,
+        ),
+    };
+  }
+
+  @override
+  Future<void> setCategoryColor(String tag, int color) async {
+    await _database.insert('settings', {
+      'key': 'category_color:$tag',
+      'value': '$color',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<String?> backupSetting(String key) async {
     final rows = await _database.query(
       'settings',

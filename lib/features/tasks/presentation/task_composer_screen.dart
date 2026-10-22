@@ -4,6 +4,7 @@ import '../../../core/design.dart';
 import '../domain/task.dart';
 import '../domain/task_controller.dart';
 import '../domain/task_dates.dart';
+import 'category_color_picker.dart';
 
 class TaskComposerScreen extends StatefulWidget {
   const TaskComposerScreen({
@@ -29,6 +30,10 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
   String? _selectedTag;
   bool _addingTag = false;
   bool _saving = false;
+  final Map<String, Color> _pendingColors = {};
+
+  Color _tagColor(String tag) =>
+      _pendingColors[tag.trim()] ?? widget.controller.categoryColor(tag);
 
   @override
   void initState() {
@@ -58,6 +63,10 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
     final tag = _addingTag ? _newTag.text.trim() : _selectedTag;
     setState(() => _saving = true);
     try {
+      final color = _pendingColors[tag];
+      if (tag != null && color != null) {
+        await widget.controller.setCategoryColor(tag, color);
+      }
       if (widget.task == null) {
         await widget.controller.create(title, bucket: _bucket, tag: tag);
       } else {
@@ -218,7 +227,20 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                               for (final tag in tags)
                                 _TagOption(
                                   label: tag,
-                                  color: AppColors.category(tag),
+                                  color: _tagColor(tag),
+                                  onLongPress: () async {
+                                    final color = await editCategoryColor(
+                                      context,
+                                      widget.controller,
+                                      tag,
+                                      initialColor: _tagColor(tag),
+                                    );
+                                    if (mounted && color != null) {
+                                      setState(
+                                        () => _pendingColors.remove(tag),
+                                      );
+                                    }
+                                  },
                                   selected: _selectedTag == tag && !_addingTag,
                                   onTap: () => setState(() {
                                     _selectedTag = _selectedTag == tag
@@ -250,6 +272,7 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                                       focusNode: _tagFocus,
                                       maxLength: 30,
                                       textInputAction: TextInputAction.done,
+                                      onChanged: (_) => setState(() {}),
                                       onSubmitted: (_) => _acceptNewTag(),
                                       decoration: const InputDecoration(
                                         hintText: 'اسم الوسم الجديد',
@@ -270,6 +293,17 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                                 ],
                               ),
                             ),
+                            if (_newTag.text.trim().isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              const Text('لون التصنيف', style: AppType.caption),
+                              const SizedBox(height: 8),
+                              CategoryColorPalette(
+                                selected: _tagColor(_newTag.text.trim()),
+                                onSelected: (color) => setState(() {
+                                  _pendingColors[_newTag.text.trim()] = color;
+                                }),
+                              ),
+                            ],
                           ],
                         ],
                       ),
@@ -366,8 +400,10 @@ class _TagOption extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.color = AppColors.blue,
+    this.onLongPress,
   });
   final String label;
+  final VoidCallback? onLongPress;
   final bool selected;
   final VoidCallback onTap;
   final Color color;
@@ -375,6 +411,7 @@ class _TagOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
+    onLongPress: onLongPress,
     borderRadius: BorderRadius.circular(20),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),

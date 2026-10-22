@@ -172,7 +172,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              _CategoryDistribution(statistics: summary, tracking: _tracking),
+              _CategoryDistribution(
+                controller: widget.controller,
+                statistics: summary,
+                tracking: _tracking,
+              ),
             ],
           ),
         ),
@@ -287,7 +291,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     style: AppType.body,
                   ),
                   const SizedBox(height: 12),
-                  _CategoryDistribution(statistics: stats, tracking: _tracking),
+                  _CategoryDistribution(
+                    controller: widget.controller,
+                    statistics: stats,
+                    tracking: _tracking,
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Divider(height: 1, color: AppColors.border),
@@ -364,11 +372,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
 class _CategoryDistribution extends StatelessWidget {
   const _CategoryDistribution({
+    required this.controller,
     required this.statistics,
     required this.tracking,
   });
   final bool tracking;
   final DayStatistics statistics;
+  final TaskController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +416,9 @@ class _CategoryDistribution extends StatelessWidget {
                   for (final category in categories)
                     Expanded(
                       flex: category.value,
-                      child: Container(color: AppColors.category(category.key)),
+                      child: Container(
+                        color: controller.categoryColor(category.key),
+                      ),
                     ),
                 ],
               ),
@@ -435,7 +447,7 @@ class _CategoryDistribution extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 5),
                               child: Icon(
                                 Icons.circle,
-                                color: AppColors.category(category.key),
+                                color: controller.categoryColor(category.key),
                                 size: 9,
                               ),
                             ),

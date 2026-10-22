@@ -15,6 +15,7 @@ void main() {
     final repository = await SqliteTaskRepository.open(databasePath: dbPath);
     expect(await repository.getLogicalDayStartMinutes(), 0);
     expect(await repository.getTimeTrackingEnabled(), isTrue);
+    await repository.setCategoryColor('عمل', 0xFFFF474D);
     await repository.setTimeTrackingEnabled(false);
     await repository.setLogicalDayStartMinutes(240);
     await repository.upsertTask(
@@ -34,6 +35,7 @@ void main() {
     );
     await repository.close();
     final reopened = await SqliteTaskRepository.open(databasePath: dbPath);
+    expect(await reopened.getCategoryColors(), {'عمل': 0xFFFF474D});
     final task = (await reopened.getTasks()).single;
     expect(await reopened.getLogicalDayStartMinutes(), 240);
     expect(await reopened.getTimeTrackingEnabled(), isFalse);
@@ -51,6 +53,7 @@ void main() {
     expect((await enabled.getTasks()).single.totalMinutes, 95);
     await enabled.setTimeTrackingEnabled(false);
     await enabled.reset();
+    expect(await enabled.getCategoryColors(), isEmpty);
     expect(await enabled.getTimeTrackingEnabled(), isTrue);
     await enabled.close();
     await directory.delete(recursive: true);

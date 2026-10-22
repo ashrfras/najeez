@@ -701,6 +701,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       TaskCaptureBar(onTap: _openComposer),
                       const SizedBox(height: 14),
                       TaskSection(
+                        controller: widget.controller,
                         title: 'اليوم',
                         tasks: today,
                         showTime: tracking,
@@ -717,6 +718,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         children: [
                           Expanded(
                             child: TaskSection(
+                              controller: widget.controller,
                               title: 'غداً',
                               tasks: tomorrow,
                               accent: AppColors.blue,
@@ -732,6 +734,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           const SizedBox(width: 10),
                           Expanded(
                             child: TaskSection(
+                              controller: widget.controller,
                               title: 'لاحقاً',
                               tasks: later,
                               accent: AppColors.orange,
@@ -748,6 +751,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 13),
                       TaskSection(
+                        controller: widget.controller,
                         title: 'تم اليوم',
                         tasks: completed,
                         showTime: tracking,

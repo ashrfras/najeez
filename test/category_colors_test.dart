@@ -25,6 +25,74 @@ void main() {
     }
   });
 
+  testWidgets('new categories can choose a color and existing badges edit it', (
+    tester,
+  ) async {
+    final repository = MemoryRepository();
+    final controller = TaskController(repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => TaskComposerScreen(controller: controller),
+              ),
+            ),
+            child: const Text('فتح'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('فتح'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'مهمة ملونة');
+    await tester.tap(find.text('وسم جديد +'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'عمل');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('أحمر'));
+    await tester.tap(find.byTooltip('أحمر'));
+    await tester.tap(find.text('إضافة'));
+    await tester.pumpAndSettle();
+    expect(controller.categoryColor('عمل'), AppColors.red);
+    final reloaded = TaskController(repository);
+    addTearDown(reloaded.dispose);
+    await reloaded.load();
+    expect(reloaded.categoryColor('عمل'), AppColors.red);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: reloaded,
+            builder: (context, _) => TaskRow(
+              task: reloaded.tasks.single,
+              controller: reloaded,
+              onToggle: () {},
+              onActions: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('عمل'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('أخضر'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(find.text('عمل')).style?.color, AppColors.green);
+    expect(repository.categoryColors['عمل'], AppColors.green.toARGB32());
+    await reloaded.reset();
+    expect(reloaded.categoryColor('عمل'), AppColors.category('عمل'));
+  });
+
   testWidgets(
     'tasks, category selection and statistics share category colors',
     (tester) async {
@@ -34,8 +102,9 @@ void main() {
       addTearDown(controller.dispose);
       await controller.load();
       await controller.create('مهمة', tag: 'عمل');
+      await controller.setCategoryColor('عمل', AppColors.orange);
       final task = controller.tasks.single;
-      final color = AppColors.category(task.tag);
+      final color = controller.categoryColor(task.tag);
 
       Future<void> mount(Widget home) async {
         await tester.pumpWidget(
@@ -51,7 +120,12 @@ void main() {
 
       await mount(
         Scaffold(
-          body: TaskRow(task: task, onToggle: () {}, onActions: () {}),
+          body: TaskRow(
+            task: task,
+            controller: controller,
+            onToggle: () {},
+            onActions: () {},
+          ),
         ),
       );
       expect(tester.widget<Text>(find.text('عمل')).style?.color, color);

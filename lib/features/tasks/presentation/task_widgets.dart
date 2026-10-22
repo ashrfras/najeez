@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design.dart';
 import '../domain/task.dart';
+import '../domain/task_controller.dart';
+import 'category_color_picker.dart';
 
 class TaskCaptureBar extends StatelessWidget {
   const TaskCaptureBar({
@@ -47,12 +49,14 @@ class TaskRow extends StatefulWidget {
     required this.onActions,
     this.dense = false,
     this.showTime = true,
+    this.controller,
   });
   final Task task;
   final VoidCallback onToggle;
   final VoidCallback onActions;
   final bool dense;
   final bool showTime;
+  final TaskController? controller;
 
   @override
   State<TaskRow> createState() => _TaskRowState();
@@ -248,7 +252,21 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                         ],
                         if (widget.task.tag != null) ...[
                           const SizedBox(width: 7),
-                          _TagBadge(label: widget.task.tag!),
+                          GestureDetector(
+                            onLongPress: widget.controller == null
+                                ? null
+                                : () => editCategoryColor(
+                                    context,
+                                    widget.controller!,
+                                    widget.task.tag!,
+                                  ),
+                            child: _TagBadge(
+                              label: widget.task.tag!,
+                              color: widget.controller?.categoryColor(
+                                widget.task.tag,
+                              ),
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -324,7 +342,8 @@ class _TaskStrikePainter extends CustomPainter {
 }
 
 class _TagBadge extends StatelessWidget {
-  const _TagBadge({required this.label});
+  const _TagBadge({required this.label, this.color});
+  final Color? color;
   final String label;
 
   @override
@@ -332,7 +351,7 @@ class _TagBadge extends StatelessWidget {
     constraints: const BoxConstraints(maxWidth: 82),
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
-      color: AppColors.category(label).withValues(alpha: .15),
+      color: (color ?? AppColors.category(label)).withValues(alpha: .15),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Text(
@@ -340,7 +359,7 @@ class _TagBadge extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: AppType.caption.copyWith(
-        color: AppColors.category(label),
+        color: (color ?? AppColors.category(label)),
         fontSize: 10,
       ),
     ),
@@ -361,6 +380,7 @@ class TaskSection extends StatelessWidget {
     this.onOpenAll,
     this.denseRows = false,
     this.showTime = true,
+    this.controller,
   });
   final String title;
   final List<Task> tasks;
@@ -373,6 +393,7 @@ class TaskSection extends StatelessWidget {
   final VoidCallback? onOpenAll;
   final bool denseRows;
   final bool showTime;
+  final TaskController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +465,7 @@ class TaskSection extends StatelessWidget {
             TaskRow(
               key: ValueKey(tasks[i].id),
               task: tasks[i],
+              controller: controller,
               dense: denseRows,
               showTime: showTime,
               onToggle: () => onToggle(tasks[i]),

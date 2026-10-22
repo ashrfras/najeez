@@ -18,6 +18,14 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 class MemoryRepository extends TaskRepository {
   final tasks = <Task>[];
+  final categoryColors = <String, int>{};
+  @override
+  Future<Map<String, int>> getCategoryColors() async => Map.of(categoryColors);
+  @override
+  Future<void> setCategoryColor(String tag, int color) async {
+    categoryColors[tag] = color;
+  }
+
   @override
   Future<List<Task>> getTasks() async => tasks;
   @override
@@ -29,6 +37,7 @@ class MemoryRepository extends TaskRepository {
   @override
   Future<void> reset() async {
     tasks.clear();
+    categoryColors.clear();
   }
 
   @override

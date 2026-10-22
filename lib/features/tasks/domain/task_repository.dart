@@ -8,5 +8,7 @@ abstract class TaskRepository {
   Future<void> setLogicalDayStartMinutes(int minutes) async {}
   Future<bool> getTimeTrackingEnabled() async => true;
   Future<void> setTimeTrackingEnabled(bool enabled) async {}
+  Future<Map<String, int>> getCategoryColors() async => {};
+  Future<void> setCategoryColor(String tag, int color) async {}
   Future<void> close();
 }

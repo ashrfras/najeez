@@ -166,6 +166,7 @@ class TaskListScreen extends StatelessWidget {
                                   itemBuilder: (context, index) => TaskRow(
                                     key: ValueKey(tasks[index].id),
                                     task: tasks[index],
+                                    controller: controller,
                                     showTime: controller.timeTrackingEnabled,
                                     onToggle: () => onToggle(tasks[index]),
                                     onActions: () => onActions(tasks[index]),

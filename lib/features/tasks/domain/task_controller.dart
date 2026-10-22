@@ -1,5 +1,6 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../../../core/design.dart';
 import 'task.dart';
 import 'task_dates.dart';
 import 'task_repository.dart';
@@ -12,6 +13,21 @@ class TaskController extends ChangeNotifier {
   final DateTime Function() _clock;
   final Random _random = Random.secure();
   List<Task> _tasks = [];
+  Map<String, int> _categoryColors = {};
+
+  Color categoryColor(String? tag) {
+    final value = _categoryColors[tag?.trim()];
+    return value == null ? AppColors.category(tag) : Color(value);
+  }
+
+  Future<void> setCategoryColor(String tag, Color color) async {
+    final label = tag.trim();
+    if (label.isEmpty || !AppColors.categoryPalette.contains(color)) return;
+    await _repository.setCategoryColor(label, color.toARGB32());
+    _categoryColors[label] = color.toARGB32();
+    notifyListeners();
+  }
+
   LogicalDay _logicalDay = const LogicalDay(0);
   bool _timeTrackingEnabled = true;
   bool get timeTrackingEnabled => _timeTrackingEnabled;
@@ -31,6 +47,7 @@ class TaskController extends ChangeNotifier {
   Future<void> load() async {
     try {
       _tasks = await _repository.getTasks();
+      _categoryColors = await _repository.getCategoryColors();
       _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
       _timeTrackingEnabled = await _repository.getTimeTrackingEnabled();
       error = null;
@@ -60,6 +77,7 @@ class TaskController extends ChangeNotifier {
   Future<void> reset() async {
     await _repository.reset();
     _tasks = [];
+    _categoryColors = {};
     _timeTrackingEnabled = true;
     _logicalDay = const LogicalDay(0);
     error = null;
