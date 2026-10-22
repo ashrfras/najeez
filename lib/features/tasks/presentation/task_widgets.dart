@@ -4,6 +4,41 @@ import 'package:flutter/services.dart';
 import '../../../core/design.dart';
 import '../domain/task.dart';
 
+class TaskCaptureBar extends StatelessWidget {
+  const TaskCaptureBar({
+    super.key,
+    required this.onTap,
+    this.hint = 'أضف مهمة ...',
+  });
+
+  final VoidCallback onTap;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(AppRadius.card),
+    child: Container(
+      decoration: panel(color: AppColors.surfaceRaised),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: Text(hint, style: AppType.caption)),
+          Container(
+            width: 37,
+            height: 37,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.blue,
+            ),
+            child: const Icon(Icons.add, color: AppColors.background, size: 25),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class TaskRow extends StatefulWidget {
   const TaskRow({
     super.key,

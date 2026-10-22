@@ -698,40 +698,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      InkWell(
-                        onTap: _openComposer,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        child: Container(
-                          decoration: panel(color: AppColors.surfaceRaised),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'أضف مهمة ...',
-                                  style: AppType.caption,
-                                ),
-                              ),
-                              Container(
-                                width: 37,
-                                height: 37,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.blue,
-                                ),
-                                child: const Icon(
-                                  Icons.add,
-                                  color: AppColors.background,
-                                  size: 25,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      TaskCaptureBar(onTap: _openComposer),
                       const SizedBox(height: 14),
                       TaskSection(
                         title: 'اليوم',

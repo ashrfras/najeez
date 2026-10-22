@@ -919,6 +919,54 @@ void main() {
     expect(find.text('إرسال الملاحظات'), findsOneWidget);
   });
 
+  for (final kind in [
+    TaskListKind.today,
+    TaskListKind.tomorrow,
+    TaskListKind.later,
+  ]) {
+    for (final useButton in [false, true]) {
+      testWidgets('${kind.name} capture opens and saves in its list via '
+          '${useButton ? 'button' : 'hint'}', (tester) async {
+        tester.view.physicalSize = const Size(320, 700);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final controller = TaskController(MemoryRepository());
+        addTearDown(controller.dispose);
+        await controller.load();
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) =>
+                Directionality(textDirection: TextDirection.rtl, child: child!),
+            home: TaskListScreen(
+              controller: controller,
+              kind: kind,
+              onToggle: (_) {},
+              onActions: (_) {},
+            ),
+          ),
+        );
+        final hint = find.text('أضف مهمة إلى ${kind.title} ...');
+        expect(hint, findsOneWidget);
+        expect(tester.getBottomLeft(hint).dy, greaterThan(600));
+        await tester.tap(useButton ? find.byIcon(Icons.add) : hint);
+        await tester.pumpAndSettle();
+        expect(find.text('إضافة مهمة'), findsOneWidget);
+        await tester.enterText(find.byType(TextField).first, 'مهمة جديدة');
+        await tester.pump();
+        await tester.tap(find.text('إضافة'));
+        await tester.pumpAndSettle();
+        expect(controller.tasks.single.bucket, kind.bucket);
+        expect(kind.select(controller).single.title, 'مهمة جديدة');
+        expect(find.text('مهمة جديدة'), findsOneWidget);
+        expect(hint, findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   testWidgets('composer can reuse an existing tag', (tester) async {
     final controller = TaskController(MemoryRepository());
     await controller.load();

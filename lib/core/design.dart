@@ -14,21 +14,21 @@ abstract final class AppColors {
   static const purple = Color(0xFFBA8AF4);
   static const red = Color(0xFFFF474D);
 
-  // Bright accents remain legible on the app's dark surfaces. Keep the order
-  // stable: category colors are derived from their names and palette indices.
+  // Separate hue, saturation and lightness so badges remain distinguishable
+  // on dark surfaces. Keep the order stable: names determine palette indices.
   static const categoryPalette = <Color>[
     blue,
     purple,
     green,
     orange,
     red,
-    Color(0xFF30C7E8), // Cyan.
-    Color(0xFF4DD4B4), // Teal.
-    Color(0xFFB5D96B), // Lime.
-    Color(0xFFF2D46B), // Yellow.
-    Color(0xFFED89BE), // Pink.
-    Color(0xFF929CFA), // Indigo.
-    Color(0xFFF5A48A), // Peach.
+    Color(0xFF36D9ED), // Cyan, clearly lighter than blue.
+    Color(0xFF9BAFC4), // Slate, replacing the second green accent.
+    Color(0xFFB9E44C), // Lime.
+    Color(0xFFFFE066), // Yellow, lighter than orange.
+    Color(0xFFF064C4), // Magenta.
+    Color(0xFF7C83FF), // Indigo.
+    Color(0xFFD6AA75), // Sand, replacing the second red accent.
   ];
 
   /// A stable, automatic color shared by category badges and statistics.

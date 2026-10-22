@@ -4,6 +4,7 @@ import '../domain/task.dart';
 import '../domain/task_controller.dart';
 import '../domain/task_dates.dart';
 import 'task_widgets.dart';
+import 'task_composer_screen.dart';
 
 enum TaskListKind { today, tomorrow, later, completedToday }
 
@@ -13,6 +14,13 @@ extension TaskListKindDetails on TaskListKind {
     TaskListKind.tomorrow => 'غداً',
     TaskListKind.later => 'لاحقاً',
     TaskListKind.completedToday => 'تم اليوم',
+  };
+
+  TaskBucket? get bucket => switch (this) {
+    TaskListKind.today => TaskBucket.today,
+    TaskListKind.tomorrow => TaskBucket.tomorrow,
+    TaskListKind.later => TaskBucket.later,
+    TaskListKind.completedToday => null,
   };
 
   Color get accent => switch (this) {
@@ -40,12 +48,6 @@ extension TaskListKindDetails on TaskListKind {
           .toList()
         ..sort((a, b) => b.completedAt!.compareTo(a.completedAt!));
     }
-    final bucket = switch (this) {
-      TaskListKind.today => TaskBucket.today,
-      TaskListKind.tomorrow => TaskBucket.tomorrow,
-      TaskListKind.later => TaskBucket.later,
-      TaskListKind.completedToday => throw StateError('Handled above'),
-    };
     final selected = controller.tasks
         .where(
           (task) =>
@@ -183,6 +185,21 @@ class TaskListScreen extends StatelessWidget {
                     },
                   ),
                 ),
+                if (kind.bucket != null) ...[
+                  const SizedBox(height: 14),
+                  TaskCaptureBar(
+                    hint: 'أضف مهمة إلى ${kind.title} ...',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        fullscreenDialog: true,
+                        builder: (_) => TaskComposerScreen(
+                          controller: controller,
+                          initialBucket: kind.bucket!,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
