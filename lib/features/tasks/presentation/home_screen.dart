@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
 import '../../statistics/presentation/statistics_screen.dart';
@@ -13,6 +12,7 @@ import '../domain/task_dates.dart';
 import '../domain/work_time_stats.dart';
 import '../domain/completion_stats.dart';
 import 'task_composer_screen.dart';
+import 'daily_repeat_confirmation.dart';
 import 'task_list_screen.dart';
 import 'task_widgets.dart';
 
@@ -46,14 +46,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final now = widget.controller.now;
     final refreshAt = widget.controller.logicalDay.nextStart(now);
     _dayTimer = Timer(refreshAt.difference(now), () {
-      widget.controller.refreshDay();
+      unawaited(widget.controller.refreshDay());
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      widget.controller.refreshDay();
+      unawaited(widget.controller.refreshDay());
       _scheduleDayRefresh();
     }
   }
@@ -85,11 +85,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showActions(Task task) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     final currentBucket = visibleBucket(
       task,
       widget.controller.now,
       widget.controller.logicalDay,
     );
+    var showMore = false;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
@@ -97,117 +99,162 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (sheetContext) => SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(4),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 17),
-                Text(
-                  task.title,
-                  textAlign: TextAlign.center,
-                  style: AppType.section,
-                ),
-                if (widget.controller.timeTrackingEnabled) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 17),
                   Text(
-                    'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
-                    style: AppType.caption,
+                    task.title,
+                    textAlign: TextAlign.center,
+                    style: AppType.section,
+                  ),
+                  if (widget.controller.timeTrackingEnabled) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
+                      style: AppType.caption,
+                    ),
+                  ],
+                  if (task.completedAt != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.controller.timeTrackingEnabled
+                          ? 'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}'
+                          : 'اكتملت: ${arabicDate(task.completedAt!)}',
+                      style: AppType.caption,
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  if (widget.controller.timeTrackingEnabled)
+                    _action(
+                      Icons.add_alarm_outlined,
+                      'إضافة وقت',
+                      AppColors.blue,
+                      () => _addTime(task),
+                    ),
+                  if (widget.controller.timeTrackingEnabled &&
+                      task.timeEntries.isNotEmpty)
+                    _action(
+                      Icons.history,
+                      'عرض إدخالات الوقت (${task.timeEntries.length})',
+                      AppColors.blue,
+                      () => _showTimeEntries(task),
+                    ),
+                  if (task.isCompleted)
+                    _action(
+                      Icons.undo,
+                      'إعادة إلى المهام',
+                      AppColors.green,
+                      () => widget.controller.restore(task),
+                    )
+                  else ...[
+                    if (widget.controller.canPin(task))
+                      _action(
+                        task.isPinned
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        task.isPinned ? 'إلغاء التثبيت' : 'تثبيت المهمة',
+                        AppColors.blue,
+                        () => widget.controller.setPinned(task, !task.isPinned),
+                        iconRotation: math.pi / 8,
+                      ),
+                    if (!widget.controller.repeatsDaily(task) &&
+                        currentBucket != TaskBucket.today)
+                      _action(
+                        Icons.adjust,
+                        'نقل إلى اليوم',
+                        AppColors.blue,
+                        () => widget.controller.move(task, TaskBucket.today),
+                      ),
+                    if (!widget.controller.repeatsDaily(task) &&
+                        currentBucket != TaskBucket.tomorrow)
+                      _action(
+                        Icons.calendar_month_outlined,
+                        'نقل إلى غداً',
+                        AppColors.blue,
+                        () => widget.controller.move(task, TaskBucket.tomorrow),
+                      ),
+                    if (!widget.controller.repeatsDaily(task) &&
+                        currentBucket != TaskBucket.later)
+                      _action(
+                        Icons.all_inclusive,
+                        'نقل إلى لاحقاً',
+                        AppColors.orange,
+                        () => widget.controller.move(task, TaskBucket.later),
+                      ),
+                  ],
+                  _action(
+                    Icons.edit_outlined,
+                    'تعديل المهمة',
+                    AppColors.muted,
+                    () => _edit(task),
+                  ),
+                  if (widget.controller.repeatsDaily(task) || showMore)
+                    _action(
+                      Icons.repeat,
+                      widget.controller.repeatsDaily(task)
+                          ? 'إيقاف التكرار اليومي'
+                          : 'تكرار يومي',
+                      AppColors.muted,
+                      () async {
+                        final enabled = !widget.controller.repeatsDaily(task);
+                        final confirmed = await confirmDailyRepeat(
+                          context,
+                          enabled: enabled,
+                        );
+                        if (!confirmed || !mounted) return;
+                        await widget.controller.setDailyRepeat(task, enabled);
+                      },
+                    ),
+                  if (showMore)
+                    _action(
+                      Icons.delete_outline,
+                      'حذف المهمة',
+                      AppColors.red,
+                      () => _confirmDelete(task),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Semantics(
+                      expanded: showMore,
+                      child: TextButton(
+                        onPressed: () =>
+                            setSheetState(() => showMore = !showMore),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.muted,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              showMore ? 'إخفاء' : 'المزيد',
+                              style: AppType.caption,
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              showMore ? Icons.expand_less : Icons.expand_more,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-                if (task.completedAt != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.controller.timeTrackingEnabled
-                        ? 'اكتملت: ${arabicDate(task.completedAt!)}، ${timeLabel(task.completedAt!)}'
-                        : 'اكتملت: ${arabicDate(task.completedAt!)}',
-                    style: AppType.caption,
-                  ),
-                ],
-                const SizedBox(height: 18),
-                if (widget.controller.timeTrackingEnabled)
-                  _action(
-                    Icons.add_alarm_outlined,
-                    'إضافة وقت',
-                    AppColors.blue,
-                    () => _addTime(task),
-                  ),
-                if (widget.controller.timeTrackingEnabled &&
-                    task.timeEntries.isNotEmpty)
-                  _action(
-                    Icons.history,
-                    'عرض إدخالات الوقت (${task.timeEntries.length})',
-                    AppColors.blue,
-                    () => _showTimeEntries(task),
-                  ),
-                if (task.isCompleted)
-                  _action(
-                    Icons.undo,
-                    'إعادة إلى المهام',
-                    AppColors.green,
-                    () => widget.controller.restore(task),
-                  )
-                else ...[
-                  if (widget.controller.canPin(task))
-                    _action(
-                      task.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                      task.isPinned ? 'إلغاء التثبيت' : 'تثبيت المهمة',
-                      AppColors.blue,
-                      () => widget.controller.setPinned(task, !task.isPinned),
-                      iconRotation: math.pi / 8,
-                    ),
-                  _action(
-                    Icons.check_circle_outline,
-                    'تمت المهمة',
-                    AppColors.green,
-                    () => widget.controller.complete(task),
-                    celebrate: true,
-                  ),
-                  if (currentBucket != TaskBucket.today)
-                    _action(
-                      Icons.adjust,
-                      'نقل إلى اليوم',
-                      AppColors.blue,
-                      () => widget.controller.move(task, TaskBucket.today),
-                    ),
-                  if (currentBucket != TaskBucket.tomorrow)
-                    _action(
-                      Icons.calendar_month_outlined,
-                      'نقل إلى غداً',
-                      AppColors.blue,
-                      () => widget.controller.move(task, TaskBucket.tomorrow),
-                    ),
-                  if (currentBucket != TaskBucket.later)
-                    _action(
-                      Icons.all_inclusive,
-                      'نقل إلى لاحقاً',
-                      AppColors.orange,
-                      () => widget.controller.move(task, TaskBucket.later),
-                    ),
-                ],
-                _action(
-                  Icons.edit_outlined,
-                  'تعديل المهمة',
-                  AppColors.muted,
-                  () => _edit(task),
-                ),
-                _action(
-                  Icons.delete_outline,
-                  'حذف المهمة',
-                  AppColors.red,
-                  () => _confirmDelete(task),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -216,26 +263,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _confirmDelete(Task task) async {
-    final confirmed = await showDialog<bool>(
+    final repeating = widget.controller.repeatsDaily(task);
+    final confirmed = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('حذف المهمة؟'),
-        content: Text('هل تريد حذف المهمة «${task.title}»؟'),
+        content: Text(
+          repeating
+              ? 'يمكنك حذف هذه النسخة فقط، أو حذفها وإيقاف التكرار اليومي. تبقى النسخ السابقة وسجلاتها محفوظة.'
+              : 'هل تريد حذف المهمة «${task.title}»؟',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('إلغاء'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('حذف'),
+            onPressed: () => Navigator.pop(dialogContext, 'one'),
+            child: Text(repeating ? 'حذف هذه النسخة فقط' : 'حذف'),
           ),
+          if (repeating)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'stop'),
+              child: const Text('حذف وإيقاف التكرار'),
+            ),
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
-    await widget.controller.delete(task);
+    if (confirmed == null || !mounted) return;
+    await widget.controller.delete(task, stopRepeating: confirmed == 'stop');
   }
 
   Future<void> _showTimeEntries(Task task) => showModalBottomSheet<void>(
@@ -483,60 +539,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     String label,
     Color color,
     Future<void> Function() callback, {
-    bool celebrate = false,
     double iconRotation = 0,
-  }) {
-    var celebrating = false;
-    return StatefulBuilder(
-      builder: (context, setActionState) => InkWell(
-        onTap: () async {
-          if (celebrating) return;
-          if (celebrate) {
-            setActionState(() => celebrating = true);
-            HapticFeedback.mediumImpact();
-            await Future<void>.delayed(const Duration(milliseconds: 550));
-            if (!context.mounted) return;
-          }
-          Navigator.pop(context);
-          try {
-            await callback();
-          } catch (_) {
-            _showError();
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 350),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
-          decoration: BoxDecoration(
-            color: celebrating ? AppColors.green.withValues(alpha: .12) : null,
-            border: const Border(
-              bottom: BorderSide(color: AppColors.border, width: .6),
-            ),
-          ),
-          child: Row(
-            children: [
-              AnimatedScale(
-                scale: celebrating ? 1.3 : 1,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutBack,
-                child: Transform.rotate(
-                  angle: iconRotation,
-                  child: Icon(
-                    celebrating ? Icons.check_circle : icon,
-                    color: color,
-                    size: 22,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 15),
-              Text(label, style: AppType.body),
-            ],
-          ),
-        ),
+  }) => InkWell(
+    onTap: () async {
+      Navigator.pop(context);
+      try {
+        await callback();
+      } catch (_) {
+        _showError();
+      }
+    },
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border, width: .6)),
       ),
-    );
-  }
+      child: Row(
+        children: [
+          Transform.rotate(
+            angle: iconRotation,
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 15),
+          Text(label, style: AppType.body),
+        ],
+      ),
+    ),
+  );
 
   Future<void> _edit(Task task) => Navigator.of(context).push(
     MaterialPageRoute<void>(

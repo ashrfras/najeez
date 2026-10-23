@@ -45,7 +45,10 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
             widget.controller.now,
             widget.controller.logicalDay,
           );
-    _title.text = widget.task?.title ?? '';
+    _title.text = widget.task == null
+        ? ''
+        : widget.controller.repeatFor(widget.task!)?.title ??
+              widget.task!.title;
     _selectedTag = widget.task?.tag;
   }
 
@@ -110,6 +113,8 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final repeatsDaily =
+        widget.task != null && widget.controller.repeatsDaily(widget.task!);
     final tags = [...widget.controller.availableTags];
     if (_selectedTag != null && !tags.contains(_selectedTag)) {
       tags.insert(0, _selectedTag!);
@@ -195,9 +200,11 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                                   icon: Icons.calendar_month_outlined,
                                   color: AppColors.blue,
                                   selected: _bucket == TaskBucket.tomorrow,
-                                  onTap: () => setState(
-                                    () => _bucket = TaskBucket.tomorrow,
-                                  ),
+                                  onTap: repeatsDaily
+                                      ? null
+                                      : () => setState(
+                                          () => _bucket = TaskBucket.tomorrow,
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 9),
@@ -207,9 +214,11 @@ class _TaskComposerScreenState extends State<TaskComposerScreen> {
                                   icon: Icons.all_inclusive,
                                   color: AppColors.orange,
                                   selected: _bucket == TaskBucket.later,
-                                  onTap: () => setState(
-                                    () => _bucket = TaskBucket.later,
-                                  ),
+                                  onTap: repeatsDaily
+                                      ? null
+                                      : () => setState(
+                                          () => _bucket = TaskBucket.later,
+                                        ),
                                 ),
                               ),
                             ],
@@ -364,31 +373,38 @@ class _BucketOption extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(AppRadius.control),
-    child: Container(
-      height: 80,
-      decoration: panel(
-        color: selected ? color.withValues(alpha: .12) : AppColors.surface,
-        radius: AppRadius.control,
-        border: selected ? color : AppColors.border,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 25),
-          const SizedBox(height: 7),
-          Text(
-            label,
-            style: AppType.body.copyWith(
-              color: selected ? AppColors.text : AppColors.muted,
-            ),
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: onTap != null,
+    child: Opacity(
+      opacity: onTap == null ? .4 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        child: Container(
+          height: 80,
+          decoration: panel(
+            color: selected ? color.withValues(alpha: .12) : AppColors.surface,
+            radius: AppRadius.control,
+            border: selected ? color : AppColors.border,
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 25),
+              const SizedBox(height: 7),
+              Text(
+                label,
+                style: AppType.body.copyWith(
+                  color: selected ? AppColors.text : AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );

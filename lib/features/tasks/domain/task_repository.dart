@@ -4,6 +4,11 @@ abstract class TaskRepository {
   Future<List<Task>> getTasks();
   Future<void> upsertTask(Task task);
   Future<void> reset();
+  Future<List<DailyRepeat>> getDailyRepeats() async => [];
+  Future<void> saveDailyRepeat(DailyRepeat repeat, {Task? task}) async {
+    throw UnsupportedError('Daily repeats are not supported');
+  }
+
   Future<int> getLogicalDayStartMinutes() async => 0;
   Future<void> setLogicalDayStartMinutes(int minutes) async {}
   Future<bool> getTimeTrackingEnabled() async => true;

@@ -27,6 +27,8 @@ class Task {
     required this.bucket,
     required this.createdAt,
     required this.updatedAt,
+    this.repeatId,
+    this.repeatDay,
     this.completedAt,
     this.pinnedAt,
     this.scheduledDate,
@@ -37,6 +39,8 @@ class Task {
 
   final String id;
   final String title;
+  final String? repeatId;
+  final DateTime? repeatDay;
   final TaskBucket bucket;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -53,6 +57,8 @@ class Task {
       timeEntries.fold(0, (sum, entry) => sum + entry.minutes);
 
   Task copyWith({
+    String? repeatId,
+    DateTime? repeatDay,
     String? title,
     TaskBucket? bucket,
     DateTime? updatedAt,
@@ -69,6 +75,8 @@ class Task {
   }) => Task(
     id: id,
     title: title ?? this.title,
+    repeatId: repeatId ?? this.repeatId,
+    repeatDay: repeatDay ?? this.repeatDay,
     bucket: bucket ?? this.bucket,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -81,4 +89,18 @@ class Task {
     isDeleted: isDeleted ?? this.isDeleted,
     timeEntries: timeEntries ?? this.timeEntries,
   );
+}
+
+/// A small local template; daily tasks own their completion and time records.
+class DailyRepeat {
+  const DailyRepeat({
+    required this.id,
+    required this.title,
+    this.tag,
+    this.enabled = true,
+  });
+  final String id;
+  final String title;
+  final String? tag;
+  final bool enabled;
 }

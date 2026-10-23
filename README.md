@@ -28,6 +28,24 @@ flutter build apk --debug
 flutter build ios --simulator --debug
 ```
 
+## Daily tasks
+
+The task menu offers daily repetition under “More”, alongside deletion. Enabling it uses an
+unfinished task as today's occurrence; completed history keeps its original
+logical date. A small repeat icon marks active recurring tasks. Titles edited
+on recurring tasks apply to future copies only.
+
+Daily templates live in the existing SQLite settings table. Schema version 7
+adds nullable `repeat_id` and `repeat_day` columns without changing existing
+tasks. Each generated copy is an ordinary task with fresh completion, pin and
+time state. Launch, foreground resume and the existing logical-day timer create
+only the current day's copy. Stored occurrence dates (including deleted or moved
+copies) and deterministic daily IDs prevent regeneration. Missed days are never
+backfilled; unfinished older copies remain ordinary tasks until handled manually.
+Stopping a repeat preserves past tasks; deletion offers either the selected copy
+or that copy plus stopping future repetition. Existing backup/reset mechanisms
+include the templates and occurrence metadata.
+
 ## Chrome web
 
 ```sh

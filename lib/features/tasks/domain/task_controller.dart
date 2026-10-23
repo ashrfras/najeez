@@ -13,6 +13,99 @@ class TaskController extends ChangeNotifier {
   final DateTime Function() _clock;
   final Random _random = Random.secure();
   List<Task> _tasks = [];
+  List<DailyRepeat> _repeats = [];
+  Future<void> _repeatQueue = Future.value();
+
+  Future<void> _serializeRepeat(Future<void> Function() action) {
+    final result = _repeatQueue.then((_) => action());
+    _repeatQueue = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace stackTrace) {},
+    );
+    return result;
+  }
+
+  DailyRepeat? repeatFor(Task task) {
+    for (final repeat in _repeats) {
+      if (repeat.id == task.repeatId) return repeat;
+    }
+    return null;
+  }
+
+  bool repeatsDaily(Task task) => repeatFor(task)?.enabled ?? false;
+
+  Future<void> _saveRepeat(DailyRepeat repeat, {Task? task}) async {
+    if (task != null && task.isPinned && !canPin(task)) {
+      task = task.copyWith(clearPinnedAt: true);
+    }
+    await _repository.saveDailyRepeat(repeat, task: task);
+    _repeats = [repeat, ..._repeats.where((item) => item.id != repeat.id)];
+    final savedTask = task;
+    if (savedTask != null) {
+      _tasks = [savedTask, ..._tasks.where((item) => item.id != savedTask.id)];
+    }
+    error = null;
+    notifyListeners();
+  }
+
+  Future<void> setDailyRepeat(
+    Task task,
+    bool enabled,
+  ) => _serializeRepeat(() async {
+    task = _current(task);
+    final previous = repeatFor(task);
+    if (previous?.enabled == enabled || (!enabled && previous == null)) return;
+    final timestamp = now;
+    final today = logicalDay.dayOf(timestamp);
+    final repeat = DailyRepeat(
+      id: previous?.id ?? task.id,
+      title: previous?.title ?? task.title,
+      tag: previous == null ? task.tag : previous.tag,
+      enabled: enabled,
+    );
+    // Activating an unfinished task uses it as today's occurrence. Completed
+    // tasks keep their original day and their complete history.
+    final occurrence = task.repeatId != null
+        ? task
+        : task.copyWith(
+            repeatId: repeat.id,
+            repeatDay: task.completedAt == null
+                ? today
+                : logicalDay.dayOf(task.completedAt!),
+            bucket: task.isCompleted ? task.bucket : TaskBucket.today,
+            clearScheduledDate: !task.isCompleted,
+            updatedAt: timestamp,
+          );
+    await _saveRepeat(repeat, task: occurrence);
+    if (enabled) await _generateToday();
+  });
+
+  Future<void> _generateToday() async {
+    final timestamp = now;
+    final day = logicalDay.dayOf(timestamp);
+    for (final repeat in _repeats.where((item) => item.enabled).toList()) {
+      // Include deleted and moved occurrences: neither action should recreate
+      // an occurrence that already belonged to this logical date.
+      if (_tasks.any(
+        (task) => task.repeatId == repeat.id && task.repeatDay == day,
+      )) {
+        continue;
+      }
+      await _save(
+        Task(
+          id: 'daily:${repeat.id}:${day.toIso8601String().substring(0, 10)}',
+          title: repeat.title,
+          tag: repeat.tag,
+          bucket: TaskBucket.today,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          repeatId: repeat.id,
+          repeatDay: day,
+        ),
+      );
+    }
+  }
+
   Map<String, int> _categoryColors = {};
 
   Color categoryColor(String? tag) {
@@ -44,12 +137,14 @@ class TaskController extends ChangeNotifier {
       .toSet()
       .toList();
 
-  Future<void> load() async {
+  Future<void> load() => _serializeRepeat(() async {
     try {
       _tasks = await _repository.getTasks();
+      _repeats = await _repository.getDailyRepeats();
       _categoryColors = await _repository.getCategoryColors();
       _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
       _timeTrackingEnabled = await _repository.getTimeTrackingEnabled();
+      await _generateToday();
       error = null;
     } catch (exception) {
       error = exception;
@@ -57,7 +152,7 @@ class TaskController extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
-  }
+  });
 
   Future<void> setLogicalDayStart(int minutes) async {
     if (minutes < 0 || minutes >= 24 * 60) {
@@ -65,7 +160,7 @@ class TaskController extends ChangeNotifier {
     }
     await _repository.setLogicalDayStartMinutes(minutes);
     _logicalDay = LogicalDay(minutes);
-    notifyListeners();
+    await refreshDay();
   }
 
   Future<void> setTimeTrackingEnabled(bool enabled) async {
@@ -74,16 +169,17 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> reset() async {
+  Future<void> reset() => _serializeRepeat(() async {
     await _repository.reset();
     _tasks = [];
+    _repeats = [];
     _categoryColors = {};
     _timeTrackingEnabled = true;
     _logicalDay = const LogicalDay(0);
     error = null;
     isLoading = false;
     notifyListeners();
-  }
+  });
 
   Future<void> create(
     String title, {
@@ -175,30 +271,60 @@ class TaskController extends ChangeNotifier {
     String title, {
     required TaskBucket bucket,
     String? tag,
-  }) async {
+  }) => _serializeRepeat(() async {
     final clean = title.trim();
     if (clean.isEmpty) return;
     task = _tasks.firstWhere((item) => item.id == task.id);
     final cleanTag = tag?.trim();
     final timestamp = now;
     final bucketChanged = bucket != visibleBucket(task, timestamp, logicalDay);
-    await _save(
-      task.copyWith(
-        title: clean,
-        updatedAt: timestamp,
-        bucket: bucketChanged ? bucket : task.bucket,
-        scheduledDate: bucketChanged
-            ? scheduleFor(bucket, timestamp, logicalDay)
-            : null,
-        clearScheduledDate: bucketChanged && bucket != TaskBucket.tomorrow,
-        tag: cleanTag,
-        clearTag: cleanTag == null || cleanTag.isEmpty,
-      ),
+    final repeat = repeatFor(task);
+    final edited = task.copyWith(
+      // A repeat's title describes future occurrences; recorded titles stay intact.
+      title: repeat == null ? clean : task.title,
+      updatedAt: timestamp,
+      bucket: bucketChanged ? bucket : task.bucket,
+      scheduledDate: bucketChanged
+          ? scheduleFor(bucket, timestamp, logicalDay)
+          : null,
+      clearScheduledDate: bucketChanged && bucket != TaskBucket.tomorrow,
+      tag: cleanTag,
+      clearTag: cleanTag == null || cleanTag.isEmpty,
     );
-  }
+    if (repeat == null) {
+      await _save(edited);
+    } else {
+      await _saveRepeat(
+        DailyRepeat(
+          id: repeat.id,
+          title: clean,
+          tag: cleanTag == null || cleanTag.isEmpty ? null : cleanTag,
+          enabled: repeat.enabled,
+        ),
+        task: edited,
+      );
+    }
+  });
 
-  Future<void> delete(Task task) =>
-      _save(_current(task).copyWith(isDeleted: true, updatedAt: now));
+  Future<void> delete(Task task, {bool stopRepeating = false}) =>
+      _serializeRepeat(() async {
+        task = _current(task);
+        final deleted = task.copyWith(isDeleted: true, updatedAt: now);
+        final repeat = repeatFor(task);
+        if (stopRepeating && repeat != null) {
+          await _saveRepeat(
+            DailyRepeat(
+              id: repeat.id,
+              title: repeat.title,
+              tag: repeat.tag,
+              enabled: false,
+            ),
+            task: deleted,
+          );
+        } else {
+          await _save(deleted);
+        }
+      });
 
   Future<void> addTimeEntry(
     Task task, {
@@ -259,5 +385,14 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  void refreshDay() => notifyListeners();
+  Future<void> refreshDay() => _serializeRepeat(() async {
+    try {
+      await _generateToday();
+      error = null;
+    } catch (exception) {
+      error = exception;
+    } finally {
+      notifyListeners();
+    }
+  });
 }

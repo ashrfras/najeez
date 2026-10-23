@@ -17,7 +17,7 @@ class SqliteTaskRepository implements TaskRepository {
         (kIsWeb ? 'baqi.db' : path.join(await getDatabasesPath(), 'baqi.db'));
     final database = await openDatabase(
       location,
-      version: 6,
+      version: 7,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks (
@@ -30,6 +30,8 @@ class SqliteTaskRepository implements TaskRepository {
             pinned_at TEXT,
             scheduled_date TEXT,
             tag TEXT,
+            repeat_id TEXT,
+            repeat_day TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0,
             time_entries TEXT NOT NULL DEFAULT '[]'
           )
@@ -63,6 +65,10 @@ class SqliteTaskRepository implements TaskRepository {
             'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
           );
         }
+        if (oldVersion < 7) {
+          await db.execute('ALTER TABLE tasks ADD COLUMN repeat_id TEXT');
+          await db.execute('ALTER TABLE tasks ADD COLUMN repeat_day TEXT');
+        }
         if (oldVersion < 6) {
           await db.execute('ALTER TABLE tasks ADD COLUMN pinned_at TEXT');
         }
@@ -85,6 +91,45 @@ class SqliteTaskRepository implements TaskRepository {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  @override
+  Future<List<DailyRepeat>> getDailyRepeats() async {
+    final rows = await _database.query(
+      'settings',
+      where: "key LIKE 'daily_repeat:%'",
+    );
+    return rows.map(_repeatFromSetting).toList();
+  }
+
+  static DailyRepeat _repeatFromSetting(Map<String, Object?> row) {
+    final value = jsonDecode(row['value'] as String) as Map<String, dynamic>;
+    return DailyRepeat(
+      id: (row['key'] as String).substring('daily_repeat:'.length),
+      title: value['title'] as String,
+      tag: value['tag'] as String?,
+      enabled: value['enabled'] as bool,
+    );
+  }
+
+  @override
+  Future<void> saveDailyRepeat(DailyRepeat repeat, {Task? task}) =>
+      _database.transaction((txn) async {
+        await txn.insert('settings', {
+          'key': 'daily_repeat:${repeat.id}',
+          'value': jsonEncode({
+            'title': repeat.title,
+            'tag': repeat.tag,
+            'enabled': repeat.enabled,
+          }),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        if (task != null) {
+          await txn.insert(
+            'tasks',
+            _toRow(task),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      });
 
   @override
   Future<int> getLogicalDayStartMinutes() async {
@@ -191,6 +236,7 @@ class SqliteTaskRepository implements TaskRepository {
     for (final row in settings) {
       final key = row['key'] as String;
       final value = row['value'] as String;
+      if (key.startsWith('daily_repeat:')) _repeatFromSetting(row);
       if (key == 'logical_day_start') {
         final minutes = int.parse(value);
         if (minutes < 0 || minutes >= 1440) {
@@ -252,6 +298,8 @@ class SqliteTaskRepository implements TaskRepository {
     pinnedAt: _date(row['pinned_at']),
     scheduledDate: _date(row['scheduled_date']),
     tag: row['tag'] as String?,
+    repeatId: row['repeat_id'] as String?,
+    repeatDay: _date(row['repeat_day']),
     isDeleted: row['is_deleted'] == 1,
     timeEntries: (jsonDecode(row['time_entries'] as String) as List<dynamic>)
         .map((value) {
@@ -278,6 +326,8 @@ class SqliteTaskRepository implements TaskRepository {
     'pinned_at': task.pinnedAt?.toIso8601String(),
     'scheduled_date': task.scheduledDate?.toIso8601String(),
     'tag': task.tag,
+    'repeat_id': task.repeatId,
+    'repeat_day': task.repeatDay?.toIso8601String(),
     'is_deleted': task.isDeleted ? 1 : 0,
     'time_entries': jsonEncode(
       task.timeEntries

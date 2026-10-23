@@ -226,6 +226,16 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                             ),
                           ),
                         ),
+                        if (widget.controller?.repeatsDaily(widget.task) ??
+                            widget.task.repeatId != null) ...[
+                          const SizedBox(width: 7),
+                          const Icon(
+                            Icons.repeat,
+                            size: 14,
+                            color: AppColors.muted,
+                            semanticLabel: 'تكرار يومي',
+                          ),
+                        ],
                         if (widget.task.isPinned) ...[
                           const SizedBox(width: 7),
                           Transform.rotate(

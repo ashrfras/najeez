@@ -75,10 +75,24 @@ void main() {
     Future<void> openDeleteConfirmation() async {
       await tester.longPress(find.text('مهمة للحذف'));
       await tester.pumpAndSettle();
+      expect(find.text('حذف المهمة'), findsNothing);
+      await tester.ensureVisible(find.text('المزيد'));
+      await tester.tap(find.text('المزيد'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('حذف المهمة'));
       await tester.tap(find.text('حذف المهمة'));
       await tester.pumpAndSettle();
       expect(find.text('حذف المهمة؟'), findsOneWidget);
+      final deleteButton = find.widgetWithText(FilledButton, 'حذف');
+      final button = tester.widget<FilledButton>(deleteButton);
+      expect(
+        button
+            .defaultStyleOf(tester.element(deleteButton))
+            .backgroundColor!
+            .resolve({}),
+        AppColors.blue,
+      );
+      expect(button.style?.backgroundColor, isNull);
       expect(controller.tasks, hasLength(1));
       expect(repository.tasks.single.isDeleted, isFalse);
     }
@@ -890,9 +904,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TaskListScreen), findsOneWidget);
     expect(find.byType(TaskRow), findsNWidgets(7));
-    await tester.tap(find.text('مهمة 7'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('تمت المهمة'));
+    final taskRow = find.widgetWithText(TaskRow, 'مهمة 7');
+    final checkbox = find.descendant(
+      of: taskRow,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    await tester.tap(checkbox.first);
     await tester.pumpAndSettle();
     expect(find.byType(TaskRow), findsNWidgets(6));
 
