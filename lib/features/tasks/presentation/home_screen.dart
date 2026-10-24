@@ -630,13 +630,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 540),
             child: CustomScrollView(
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  // Keep gesture clearance inside the scrollable viewport.
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    12,
+                    16,
+                    28 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       SizedBox(
