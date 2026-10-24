@@ -535,11 +535,11 @@ void main() {
       await tester.ensureVisible(find.text('حذف المهمة'));
       await tester.tap(find.text('حذف المهمة'));
       await tester.pumpAndSettle();
-      expect(find.text('حذف هذه النسخة فقط'), findsOneWidget);
-      expect(find.text('حذف وإيقاف التكرار'), findsOneWidget);
+      expect(find.text('حذف النسخة'), findsOneWidget);
+      expect(find.text('حذف التكرار'), findsOneWidget);
       final deleteButton = find.widgetWithText(
         FilledButton,
-        'حذف هذه النسخة فقط',
+        'حذف النسخة',
       );
       final button = tester.widget<FilledButton>(deleteButton);
       expect(button.style?.backgroundColor, isNull);

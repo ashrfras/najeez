@@ -280,12 +280,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, 'one'),
-            child: Text(repeating ? 'حذف هذه النسخة فقط' : 'حذف'),
+            child: Text(repeating ? 'حذف النسخة' : 'حذف'),
           ),
           if (repeating)
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, 'stop'),
-              child: const Text('حذف وإيقاف التكرار'),
+              child: const Text('حذف التكرار'),
             ),
         ],
       ),
