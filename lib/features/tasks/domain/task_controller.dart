@@ -84,11 +84,17 @@ class TaskController extends ChangeNotifier {
     final timestamp = now;
     final day = logicalDay.dayOf(timestamp);
     for (final repeat in _repeats.where((item) => item.enabled).toList()) {
-      // Include deleted and moved occurrences: neither action should recreate
-      // an occurrence that already belonged to this logical date.
-      if (_tasks.any(
-        (task) => task.repeatId == repeat.id && task.repeatDay == day,
-      )) {
+      // Keep today's occurrence (including its deletion marker). An unfinished
+      // copy blocks future copies, regardless of its original date or bucket.
+      // Completing an older copy starts the wait for the next logical day.
+      if (_tasks.any((task) {
+        if (task.repeatId != repeat.id) return false;
+        if (task.repeatDay == day) return true;
+        if (task.isDeleted) return false;
+        final completedAt = task.completedAt;
+        return completedAt == null ||
+            !logicalDay.dayOf(completedAt).isBefore(day);
+      })) {
         continue;
       }
       await _save(

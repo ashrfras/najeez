@@ -86,16 +86,85 @@ void main() {
   );
 
   test(
+    'unfinished copy survives absence; completion waits until next logical day',
+    () async {
+      await controller.setLogicalDayStart(240);
+      final original = controller.tasks.single;
+      await controller.setDailyRepeat(original, true);
+      await controller.addTimeEntry(original, hours: 1, minutes: 10);
+      await controller.setPinned(original, true);
+      final before = controller.tasks.single;
+      now = DateTime(2026, 10, 20, 3, 58);
+      await Future.wait(List.generate(5, (_) => controller.refreshDay()));
+      await controller.load();
+      expect(controller.tasks.single.id, original.id);
+      expect(controller.tasks.single.repeatDay, DateTime(2026, 10, 15));
+      expect(controller.tasks.single.totalMinutes, 70);
+      expect(controller.tasks.single.pinnedAt, before.pinnedAt);
+      expect(controller.tasks.single.createdAt, before.createdAt);
+      await controller.complete(original);
+      await controller.refreshDay();
+      await controller.load();
+      expect(controller.tasks, hasLength(1));
+      now = DateTime(2026, 10, 20, 3, 59);
+      await controller.refreshDay();
+      expect(controller.tasks, hasLength(1));
+      now = DateTime(2026, 10, 20, 4);
+      await Future.wait(List.generate(5, (_) => controller.refreshDay()));
+      expect(controller.tasks, hasLength(2));
+      expect(controller.tasks.first.repeatDay, DateTime(2026, 10, 20));
+      expect(controller.tasks.first.isCompleted, isFalse);
+      expect(controller.tasks.first.totalMinutes, 0);
+      expect(controller.tasks.last.completedAt, DateTime(2026, 10, 20, 3, 58));
+      expect(controller.tasks.last.totalMinutes, 70);
+    },
+  );
+
+  test(
+    'unfinished moved copy blocks only its own repeat; deleted copies do not block',
+    () async {
+      final original = controller.tasks.single;
+      await controller.setDailyRepeat(original, true);
+      await controller.move(original, TaskBucket.later);
+      await controller.create('رياضة');
+      final other = controller.tasks.first;
+      await controller.setDailyRepeat(other, true);
+      await controller.complete(other);
+      now = DateTime(2026, 10, 20, 9);
+      await controller.refreshDay();
+      expect(
+        controller.tasks.where((t) => t.repeatId == original.id),
+        hasLength(1),
+      );
+      expect(
+        controller.tasks.where((t) => t.repeatId == other.id),
+        hasLength(2),
+      );
+      await controller.delete(original);
+      await controller.refreshDay();
+      expect(
+        controller.tasks
+            .where((t) => t.repeatId == original.id)
+            .single
+            .repeatDay,
+        DateTime(2026, 10, 20),
+      );
+    },
+  );
+
+  test(
     'respects boundary and concurrent refresh; skips missed days on load',
     () async {
       await controller.setLogicalDayStart(240);
       await controller.setDailyRepeat(controller.tasks.single, true);
+      await controller.complete(controller.tasks.single);
       now = DateTime(2026, 10, 16, 3, 59);
       await controller.refreshDay();
       expect(controller.tasks, hasLength(1));
       now = DateTime(2026, 10, 16, 4);
       await Future.wait(List.generate(8, (_) => controller.refreshDay()));
       expect(controller.tasks, hasLength(2));
+      await controller.complete(controller.tasks.first);
       now = DateTime(2026, 10, 20, 4);
       final reopened = TaskController(repository, clock: () => now);
       addTearDown(reopened.dispose);
@@ -145,6 +214,7 @@ void main() {
       await controller.refreshDay();
       final today = controller.tasks.first;
       expect(today.title, 'قراءة جديدة');
+      await controller.complete(today);
       await controller.setDailyRepeat(today, false);
       now = DateTime(2026, 10, 17, 9);
       await controller.load();
@@ -185,10 +255,10 @@ void main() {
       await controller.setDailyRepeat(controller.tasks.single, true);
       expect(controller.tasks.single.repeatDay, DateTime(2026, 10, 15));
       await controller.setLogicalDayStart(0);
-      expect(controller.tasks, hasLength(2));
+      expect(controller.tasks, hasLength(1));
       await controller.setLogicalDayStart(240);
       await controller.setLogicalDayStart(0);
-      expect(controller.tasks, hasLength(2));
+      expect(controller.tasks, hasLength(1));
     },
   );
 
@@ -196,6 +266,7 @@ void main() {
     'failed generation retries safely and queue survives failures',
     () async {
       await controller.setDailyRepeat(controller.tasks.single, true);
+      await controller.complete(controller.tasks.single);
       now = DateTime(2026, 10, 16, 9);
       repository.failGeneration = true;
       await controller.refreshDay();
@@ -241,6 +312,42 @@ void main() {
       await local.refreshDay();
       expect(local.tasks.single.title, 'عادة');
       expect((await sqlite.getTasks()), hasLength(2));
+      local.dispose();
+      await sqlite.close();
+      await directory.delete(recursive: true);
+    },
+  );
+
+  test(
+    'SQLite reopen preserves unfinished guard and completion-day wait',
+    () async {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      final directory = await Directory.systemTemp.createTemp('daily_pending_');
+      final path = '${directory.path}/tasks.db';
+      var sqlite = await SqliteTaskRepository.open(databasePath: path);
+      var local = TaskController(sqlite, clock: () => now);
+      await local.load();
+      await local.create('عادة');
+      await local.setDailyRepeat(local.tasks.single, true);
+      local.dispose();
+      await sqlite.close();
+      now = DateTime(2026, 10, 20, 9);
+      sqlite = await SqliteTaskRepository.open(databasePath: path);
+      local = TaskController(sqlite, clock: () => now);
+      await local.load();
+      expect(local.tasks, hasLength(1));
+      await local.complete(local.tasks.single);
+      local.dispose();
+      await sqlite.close();
+      sqlite = await SqliteTaskRepository.open(databasePath: path);
+      local = TaskController(sqlite, clock: () => now);
+      await local.load();
+      expect(local.tasks, hasLength(1));
+      now = DateTime(2026, 10, 25, 9);
+      await local.load();
+      expect(local.tasks, hasLength(2));
+      expect(local.tasks.first.repeatDay, DateTime(2026, 10, 25));
       local.dispose();
       await sqlite.close();
       await directory.delete(recursive: true);
@@ -297,10 +404,10 @@ void main() {
       instant = DateTime(2026, 10, 21, 9);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();
-      expect(controller.tasks, hasLength(3));
-      expect(controller.tasks.first.repeatDay, DateTime(2026, 10, 21));
+      expect(controller.tasks, hasLength(2));
+      expect(controller.tasks.first.repeatDay, DateTime(2026, 10, 16));
       await controller.refreshDay();
-      expect(controller.tasks, hasLength(3));
+      expect(controller.tasks, hasLength(2));
     },
   );
 

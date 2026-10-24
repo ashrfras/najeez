@@ -41,7 +41,10 @@ tasks. Each generated copy is an ordinary task with fresh completion, pin and
 time state. Launch, foreground resume and the existing logical-day timer create
 only the current day's copy. Stored occurrence dates (including deleted or moved
 copies) and deterministic daily IDs prevent regeneration. Missed days are never
-backfilled; unfinished older copies remain ordinary tasks until handled manually.
+backfilled. Any non-deleted unfinished copy blocks new copies of the same repeat,
+even if it belongs to an older day or another bucket. After completion, the next
+copy becomes eligible on the next logical day; reopening on the completion day
+never creates a replacement. Existing copies and their time records stay intact.
 Stopping a repeat preserves past tasks; deletion offers either the selected copy
 or that copy plus stopping future repetition. Existing backup/reset mechanisms
 include the templates and occurrence metadata.
