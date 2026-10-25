@@ -43,11 +43,17 @@ class SettingsScreen extends StatelessWidget {
       animation: controller,
       builder: (context, _) => Scaffold(
         body: SafeArea(
+          bottom: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 540),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  18,
+                  16,
+                  28 + MediaQuery.paddingOf(context).bottom,
+                ),
                 children: [
                   Row(
                     children: [

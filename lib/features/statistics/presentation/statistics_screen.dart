@@ -78,11 +78,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
+      bottom: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540),
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              18,
+              16,
+              28 + MediaQuery.paddingOf(context).bottom,
+            ),
             itemCount:
                 _visibleDays + 1 + (_visibleDays < _availableDays ? 1 : 0),
             itemBuilder: (context, index) {
