@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
+import '../../../core/status_bar_fade.dart';
 import '../../statistics/presentation/statistics_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../domain/task.dart';
@@ -629,8 +630,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
+      body: StatusBarFade(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 540),
@@ -640,7 +640,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Keep gesture clearance inside the scrollable viewport.
                   padding: EdgeInsets.fromLTRB(
                     16,
-                    12,
+                    12 + MediaQuery.paddingOf(context).top,
                     16,
                     28 + MediaQuery.paddingOf(context).bottom,
                   ),

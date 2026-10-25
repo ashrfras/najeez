@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
+import '../../../core/status_bar_fade.dart';
 import '../../tasks/domain/task.dart';
 import '../../tasks/domain/task_controller.dart';
 import '../../tasks/presentation/task_widgets.dart';
@@ -77,15 +78,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      bottom: false,
+    body: StatusBarFade(
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540),
           child: ListView.builder(
             padding: EdgeInsets.fromLTRB(
               16,
-              18,
+              18 + MediaQuery.paddingOf(context).top,
               16,
               28 + MediaQuery.paddingOf(context).bottom,
             ),

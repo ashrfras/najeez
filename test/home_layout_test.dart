@@ -72,7 +72,7 @@ void main() {
         of: find.byType(HomeScreen),
         matching: find.byType(CustomScrollView),
       );
-      expect(tester.getRect(scroll).top, 47);
+      expect(tester.getRect(scroll).top, 0);
       expect(tester.getRect(scroll).bottom, 600);
       final position = tester
           .state<ScrollableState>(

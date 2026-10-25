@@ -61,7 +61,7 @@ void main() {
             double viewportBottom,
             double safeBottom,
           ) async {
-            expect(tester.getRect(list).top, 47);
+            expect(tester.getRect(list).top, 0);
             expect(tester.getRect(list).bottom, viewportBottom);
             expect(position.maxScrollExtent, greaterThan(0));
             await tester.drag(list, const Offset(0, -3000));

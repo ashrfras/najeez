@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design.dart';
+import '../../../core/status_bar_fade.dart';
 import '../../tasks/domain/task_controller.dart';
 import 'app_info_screen.dart';
 import '../../backup/backup_scope.dart';
@@ -42,15 +43,14 @@ class SettingsScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) => Scaffold(
-        body: SafeArea(
-          bottom: false,
+        body: StatusBarFade(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 540),
               child: ListView(
                 padding: EdgeInsets.fromLTRB(
                   16,
-                  18,
+                  18 + MediaQuery.paddingOf(context).top,
                   16,
                   28 + MediaQuery.paddingOf(context).bottom,
                 ),
