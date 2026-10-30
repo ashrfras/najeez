@@ -261,17 +261,17 @@ void main() {
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
 
-    expect(find.text('عمل اليوم'), findsOneWidget);
+    expect(find.text('تركيز اليوم'), findsOneWidget);
     expect(find.text('4س 20د'), findsOneWidget);
     expect(find.text('متوسط 7 أيام'), findsOneWidget);
     expect(find.text('1س 40د'), findsOneWidget);
     expect(find.text('1'), findsWidgets);
     expect(
       tester.getCenter(find.text('تم اليوم').first).dx,
-      greaterThan(tester.getCenter(find.text('عمل اليوم')).dx),
+      greaterThan(tester.getCenter(find.text('تركيز اليوم')).dx),
     );
     expect(
-      tester.getCenter(find.text('عمل اليوم')).dx,
+      tester.getCenter(find.text('تركيز اليوم')).dx,
       greaterThan(tester.getCenter(find.text('متوسط 7 أيام')).dx),
     );
     expect(tester.getRect(find.text('4س 20د')).width, lessThan(80));

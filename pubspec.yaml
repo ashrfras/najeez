@@ -1,7 +1,7 @@
 name: baqi
 description: A quiet, local-first Arabic task app.
 publish_to: 'none'
-version: 1.0.0+34
+version: 1.0.0+35
 
 environment:
   sdk: ^3.12.2

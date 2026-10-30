@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (widget.controller.timeTrackingEnabled) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'الوقت المقضي: ${durationLabel(task.totalMinutes)}',
+                      'مدة التركيز: ${durationLabel(task.totalMinutes)}',
                       style: AppType.caption,
                     ),
                   ],
@@ -711,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             value: tracking
                                 ? compactDurationLabel(workTime.todayMinutes)
                                 : '${completions.todayCount}',
-                            label: 'عمل اليوم',
+                            label: tracking ? 'تركيز اليوم' : 'إنجاز اليوم',
                             color: AppColors.blue,
                             icon: tracking
                                 ? Icons.schedule_outlined

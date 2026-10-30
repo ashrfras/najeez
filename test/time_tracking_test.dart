@@ -103,6 +103,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('4س 30د'), findsOneWidget);
+      expect(find.text('تركيز اليوم'), findsOneWidget);
+      expect(find.text('إنجاز اليوم'), findsNothing);
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
       expect(
@@ -138,6 +140,8 @@ void main() {
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
       expect(find.text('4س 30د'), findsNothing);
+      expect(find.text('إنجاز اليوم'), findsOneWidget);
+      expect(find.text('تركيز اليوم'), findsNothing);
       expect(find.text('0.1'), findsOneWidget);
       for (final row in tester.widgetList<TaskRow>(find.byType(TaskRow))) {
         expect(row.showTime, isFalse);
@@ -145,7 +149,7 @@ void main() {
       await tester.tap(find.text('مهمة مفتوحة'));
       await tester.pumpAndSettle();
       expect(find.text('إضافة وقت'), findsNothing);
-      expect(find.textContaining('الوقت المقضي'), findsNothing);
+      expect(find.textContaining('مدة التركيز'), findsNothing);
       expect(find.textContaining('عرض إدخالات الوقت'), findsNothing);
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
@@ -183,9 +187,12 @@ void main() {
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
       expect(find.text('4س 30د'), findsOneWidget);
+      expect(find.text('تركيز اليوم'), findsOneWidget);
+      expect(find.text('إنجاز اليوم'), findsNothing);
       await tester.tap(find.text('مهمة مفتوحة'));
       await tester.pumpAndSettle();
       expect(find.text('إضافة وقت'), findsOneWidget);
+      expect(find.text('مدة التركيز: 1 س 30 د'), findsOneWidget);
       expect(find.text('عرض إدخالات الوقت (1)'), findsOneWidget);
       expect(controller.tasks.every((task) => task.totalMinutes == 90), isTrue);
       expect(tester.takeException(), isNull);

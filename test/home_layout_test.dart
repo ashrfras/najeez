@@ -132,7 +132,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('اليوم'), findsOneWidget);
-    expect(find.text('عمل اليوم'), findsOneWidget);
+    expect(find.text('تركيز اليوم'), findsOneWidget);
     expect(find.text('0د'), findsOneWidget);
     expect(find.text('متوسط 7 أيام'), findsOneWidget);
     expect(find.text('-'), findsOneWidget);
