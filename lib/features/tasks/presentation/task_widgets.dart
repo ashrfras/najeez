@@ -387,6 +387,7 @@ class TaskSection extends StatelessWidget {
     required this.onActions,
     this.onAdd,
     this.previewLimit,
+    this.scrollOverflow = false,
     this.onOpenAll,
     this.denseRows = false,
     this.showTime = true,
@@ -400,6 +401,7 @@ class TaskSection extends StatelessWidget {
   final void Function(Task) onActions;
   final VoidCallback? onAdd;
   final int? previewLimit;
+  final bool scrollOverflow;
   final VoidCallback? onOpenAll;
   final bool denseRows;
   final bool showTime;
@@ -411,6 +413,33 @@ class TaskSection extends StatelessWidget {
         ? tasks.length
         : tasks.length.clamp(0, previewLimit!);
     final remainingCount = tasks.length - visibleCount;
+    final scrollTasks = scrollOverflow && remainingCount > 0;
+    Widget taskRow(int index) => TaskRow(
+      key: ValueKey(tasks[index].id),
+      task: tasks[index],
+      controller: controller,
+      dense: denseRows,
+      showTime: showTime,
+      onToggle: () => onToggle(tasks[index]),
+      onActions: () => onActions(tasks[index]),
+    );
+    const divider = Divider(
+      height: 1,
+      indent: 13,
+      endIndent: 13,
+      color: AppColors.border,
+    );
+    // Reserve two title lines per row, including the user's text scaling.
+    final lineMetrics = TextPainter(
+      text: TextSpan(
+        text: 'مهمة',
+        style: DefaultTextStyle.of(context).style.merge(AppType.body),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final rowExtent = math.max(23.0, lineMetrics.height * 2) + 21;
+    lineMetrics.dispose();
     return Container(
       decoration: panel(),
       clipBehavior: Clip.antiAlias,
@@ -464,25 +493,33 @@ class TaskSection extends StatelessWidget {
                 ),
               ),
             ),
-          for (var i = 0; i < visibleCount; i++) ...[
-            if (i > 0 || tasks.isNotEmpty)
-              const Divider(
-                height: 1,
-                indent: 13,
-                endIndent: 13,
-                color: AppColors.border,
+          if (scrollTasks)
+            SizedBox(
+              // Peek at the next task to make the inner scroll discoverable.
+              height: rowExtent * (visibleCount + .45),
+              child: ListView.builder(
+                primary: false,
+                padding: EdgeInsets.zero,
+                itemExtent: rowExtent,
+                itemCount: tasks.length,
+                findChildIndexCallback: (key) {
+                  final index = tasks.indexWhere(
+                    (task) => ValueKey(task.id) == key,
+                  );
+                  return index < 0 ? null : index;
+                },
+                itemBuilder: (context, index) => Column(
+                  key: ValueKey(tasks[index].id),
+                  children: [
+                    divider,
+                    Expanded(child: taskRow(index)),
+                  ],
+                ),
               ),
-            TaskRow(
-              key: ValueKey(tasks[i].id),
-              task: tasks[i],
-              controller: controller,
-              dense: denseRows,
-              showTime: showTime,
-              onToggle: () => onToggle(tasks[i]),
-              onActions: () => onActions(tasks[i]),
-            ),
-          ],
-          if (remainingCount > 0 && onOpenAll != null) ...[
+            )
+          else
+            for (var i = 0; i < visibleCount; i++) ...[divider, taskRow(i)],
+          if (!scrollTasks && remainingCount > 0 && onOpenAll != null) ...[
             const Divider(
               height: 1,
               indent: 13,

@@ -745,6 +745,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         accent: AppColors.blue,
                         icon: Icons.adjust,
                         previewLimit: 5,
+                        scrollOverflow: true,
                         onOpenAll: () => _openList(TaskListKind.today),
                         onToggle: _toggleTask,
                         onActions: _showActions,

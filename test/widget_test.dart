@@ -874,55 +874,86 @@ void main() {
     );
   });
 
-  testWidgets('today preview opens the live full list', (tester) async {
-    tester.view.physicalSize = const Size(1200, 2600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
-    final repository = MemoryRepository();
-    final controller = TaskController(repository);
-    await controller.load();
-    for (var i = 1; i <= 7; i++) {
-      await controller.create('مهمة $i');
-    }
-    await tester.pumpWidget(
-      BaqiApp(controller: controller, splashDuration: Duration.zero),
-    );
-    expect(find.byType(TaskRow), findsNWidgets(5));
-    expect(find.text('عرض 2 مهام أخرى'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.widgetWithText(TaskSection, 'اليوم'),
-        matching: find.text('7'),
-      ),
-      findsOneWidget,
-    );
+  testWidgets(
+    'today previews part of the sixth task and its header opens the full list',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 2600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final repository = MemoryRepository();
+      final controller = TaskController(repository);
+      await controller.load();
+      for (var i = 1; i <= 7; i++) {
+        await controller.create('مهمة $i');
+      }
+      await tester.pumpWidget(
+        BaqiApp(controller: controller, splashDuration: Duration.zero),
+      );
+      final todaySection = find.widgetWithText(TaskSection, 'اليوم');
+      final taskList = find.descendant(
+        of: todaySection,
+        matching: find.byType(ListView),
+      );
+      expect(tester.widget<ListView>(taskList).semanticChildCount, 7);
+      final viewport = tester.getRect(taskList);
+      final rows = tester.widget<TaskSection>(todaySection).tasks;
+      final fifthRow = tester.getRect(find.byKey(ValueKey(rows[4].id)).last);
+      final sixthRow = tester.getRect(find.byKey(ValueKey(rows[5].id)).last);
+      expect(fifthRow.bottom, lessThanOrEqualTo(viewport.bottom));
+      final visiblePeek = sixthRow.intersect(viewport).height;
+      expect(visiblePeek, greaterThan(0));
+      expect(visiblePeek, lessThan(sixthRow.height / 2));
+      expect(find.text('عرض 2 مهام أخرى'), findsNothing);
+      final headerTop = tester.getTopLeft(find.text('اليوم'));
+      final scrollPosition = tester
+          .state<ScrollableState>(
+            find.descendant(of: taskList, matching: find.byType(Scrollable)),
+          )
+          .position;
+      expect(scrollPosition.maxScrollExtent, greaterThan(0));
+      await tester.drag(taskList, const Offset(0, -500));
+      await tester.pumpAndSettle();
+      expect(
+        scrollPosition.pixels,
+        closeTo(scrollPosition.maxScrollExtent, .01),
+      );
+      expect(tester.getTopLeft(find.text('اليوم')), headerTop);
+      expect(find.text('مهمة 1').hitTestable(), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.widgetWithText(TaskSection, 'اليوم'),
+          matching: find.text('7'),
+        ),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('عرض 2 مهام أخرى'));
-    await tester.pumpAndSettle();
-    expect(find.byType(TaskListScreen), findsOneWidget);
-    expect(find.byType(TaskRow), findsNWidgets(7));
-    final taskRow = find.widgetWithText(TaskRow, 'مهمة 7');
-    final checkbox = find.descendant(
-      of: taskRow,
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Container &&
-            widget.decoration is BoxDecoration &&
-            (widget.decoration! as BoxDecoration).shape == BoxShape.circle,
-      ),
-    );
-    await tester.tap(checkbox.first);
-    await tester.pumpAndSettle();
-    expect(find.byType(TaskRow), findsNWidgets(6));
+      await tester.tap(find.text('اليوم'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TaskListScreen), findsOneWidget);
+      expect(find.byType(TaskRow), findsNWidgets(7));
+      final taskRow = find.widgetWithText(TaskRow, 'مهمة 7');
+      final checkbox = find.descendant(
+        of: taskRow,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Container &&
+              widget.decoration is BoxDecoration &&
+              (widget.decoration! as BoxDecoration).shape == BoxShape.circle,
+        ),
+      );
+      await tester.tap(checkbox.first);
+      await tester.pumpAndSettle();
+      expect(find.byType(TaskRow), findsNWidgets(6));
 
-    await tester.tap(find.byIcon(Icons.arrow_back));
-    await tester.pumpAndSettle();
-    expect(find.byType(TaskRow), findsNWidgets(6));
-    expect(find.text('عرض 1 مهام أخرى'), findsOneWidget);
-  });
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(tester.widget<ListView>(taskList).semanticChildCount, 6);
+      expect(find.text('عرض 1 مهام أخرى'), findsNothing);
+    },
+  );
 
   testWidgets('capture opens composer and saves a new tag and bucket', (
     tester,
