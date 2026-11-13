@@ -48,6 +48,30 @@ class FocusLayout extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: 0,
+              height: clearance + math.max(media.padding.bottom, 8) + 36,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.background.withValues(alpha: 0),
+                        AppColors.background.withValues(alpha: .65),
+                        AppColors.background.withValues(alpha: .94),
+                        AppColors.background,
+                      ],
+                      stops: const [0, .45, .8, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (active)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: FocusBar(controller: controller, onError: onError),
             ),
         ],
