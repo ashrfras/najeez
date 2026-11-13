@@ -1,0 +1,2 @@
+// Keep the extension version aligned with pubspec.yaml via Flutter's generated settings.
+#include "../Flutter/Generated.xcconfig"

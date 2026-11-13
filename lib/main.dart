@@ -14,6 +14,7 @@ import 'features/tasks/domain/task.dart';
 import 'features/tasks/presentation/home_screen.dart';
 import 'features/tasks/presentation/focus_bar.dart';
 import 'features/tasks/presentation/splash_screen.dart';
+import 'features/tasks/platform/focus_live_activity.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,7 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   String? _lastBackupMessage;
   TimeEntry? _lastFocusEntry;
+  late final FocusLiveActivity _focusActivity;
 
   void _focusChanged() {
     final entry = widget.controller.lastFocusEntry;
@@ -92,7 +94,10 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkBackup();
+    if (state == AppLifecycleState.resumed) {
+      _checkBackup();
+      unawaited(_focusActivity.sync(force: true));
+    }
   }
 
   Timer? _splashTimer;
@@ -102,6 +107,7 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _focusActivity = FocusLiveActivity(widget.controller)..start();
     widget.backup?.addListener(_backupChanged);
     _lastFocusEntry = widget.controller.lastFocusEntry;
     widget.controller.addListener(_focusChanged);
@@ -120,6 +126,7 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _focusActivity.dispose();
     widget.backup?.removeListener(_backupChanged);
     widget.controller.removeListener(_focusChanged);
     _splashTimer?.cancel();

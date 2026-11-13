@@ -124,3 +124,10 @@ barrier covers the local restore transaction and controller reload; cloud upload
 and downloads leave the app usable. Reset clears local consent/scheduling and
 never deletes the cloud record. Disabling automatic backup also keeps that record;
 manual backup and restore remain available.
+
+## Focus Live Activities PoC
+
+iOS focus sessions are mirrored locally to ActivityKit with a system-rendered
+elapsed timer, Lock Screen and Dynamic Island layouts, and a small layout for
+Apple Watch Smart Stack. See [the Arabic PoC notes](docs/focus-live-activities-poc.md)
+for platform requirements, device checks, and the deferred watch stop action.

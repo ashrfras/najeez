@@ -4,6 +4,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let cloudBackup = CloudBackupBridge()
+  private let focusActivity = FocusActivityBridge()
 
   override func application(
     _ application: UIApplication,
@@ -18,6 +19,11 @@ import UIKit
     let channel = FlutterMethodChannel(name: "ma.raqmain.najeez/icloud", binaryMessenger: registrar.messenger())
     channel.setMethodCallHandler { [cloudBackup] call, result in
       cloudBackup.handle(call, result: result)
+    }
+    let focusChannel = FlutterMethodChannel(
+      name: "ma.raqmain.najeez/focus_activity", binaryMessenger: registrar.messenger())
+    focusChannel.setMethodCallHandler { [focusActivity] call, result in
+      focusActivity.handle(call, result: result)
     }
   }
 }
