@@ -30,21 +30,32 @@ struct FocusActivityWidget: Widget {
       }
     } dynamicIsland: { context in
       DynamicIsland {
-        DynamicIslandExpandedRegion(.leading) {
-          Label("قيد التركيز", systemImage: "scope")
-        }
-        DynamicIslandExpandedRegion(.trailing) {
-          FocusTimer(start: context.attributes.startedAt)
-        }
         DynamicIslandExpandedRegion(.bottom) {
-          Text(context.state.title).font(.headline).lineLimit(2)
-            .environment(\.layoutDirection, .rightToLeft)
+          // A shared RTL container controls the whole row, independently of
+          // the system direction used to place the Island's separate regions.
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Label("قيد التركيز", systemImage: "scope")
+                .foregroundStyle(.cyan)
+              Spacer(minLength: 12)
+              FocusTimer(start: context.attributes.startedAt)
+                .multilineTextAlignment(.leading)
+                .frame(width: 100)
+            }
+            Text(context.state.title).font(.headline).lineLimit(2)
+              .multilineTextAlignment(.leading)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .environment(\.layoutDirection, .rightToLeft)
         }
       } compactLeading: {
         Image(systemName: "scope").foregroundStyle(.cyan)
       } compactTrailing: {
         FocusTimer(start: context.attributes.startedAt)
-          .font(.caption2).frame(width: 62)
+          // Bound the flexible timer without reserving excess compact width.
+          .font(.caption2)
+          .multilineTextAlignment(.trailing)
+          .frame(width: 46)
       } minimal: {
         Image(systemName: "scope").foregroundStyle(.cyan)
       }
@@ -76,7 +87,10 @@ private struct FocusContent: View {
       FocusTimer(start: context.attributes.startedAt)
         .font(compact ? .title3 : .title2)
     }
-    .padding(compact ? 10 : 16)
+    // The small presentation needs its own inset inside the rounded card.
+    .padding(.top, compact ? 18 : 16)
+    .padding(.horizontal, compact ? 10 : 16)
+    .padding(.bottom, compact ? 18 : 16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .environment(\.layoutDirection, .rightToLeft)
     .activityBackgroundTint(Color(red: 0.05, green: 0.07, blue: 0.10))
@@ -91,6 +105,8 @@ private struct FocusTimer: View {
     // The system renders elapsed time even while Flutter is suspended.
     Text(start, style: .timer)
       .monospacedDigit()
+      // Also localizes the system's coarse time units in Always On mode.
+      .environment(\.locale, Locale(identifier: "ar"))
       .environment(\.layoutDirection, .leftToRight)
       .accessibilityLabel("الوقت المنقضي")
   }
