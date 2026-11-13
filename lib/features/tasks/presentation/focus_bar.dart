@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import '../../../core/design.dart';
 import '../domain/task_controller.dart';
 
-/// Reserves space outside the navigator so the bar never covers page content.
+/// Paints above the page while keeping its last controls reachable.
 class FocusLayout extends StatelessWidget {
   const FocusLayout({
     super.key,
@@ -20,11 +22,34 @@ class FocusLayout extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
     builder: (context, _) {
-      return Column(
+      final active = controller.focusedTask != null;
+      final media = MediaQuery.of(context);
+      final text = TextPainter(
+        text: const TextSpan(text: '00:00:00', style: AppType.body),
+        textDirection: TextDirection.ltr,
+        textScaler: media.textScaler,
+      )..layout();
+      // Match the bar's row, padding and border without reducing the viewport.
+      final clearance = math.max(48.0, text.height) + 17.6 + 16;
+      text.dispose();
+      return Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(child: child),
-          if (controller.focusedTask != null)
-            FocusBar(controller: controller, onError: onError),
+          MediaQuery(
+            data: media.copyWith(
+              padding: media.padding.copyWith(
+                bottom: media.padding.bottom + (active ? clearance : 0),
+              ),
+            ),
+            child: child,
+          ),
+          if (active)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: FocusBar(controller: controller, onError: onError),
+            ),
         ],
       );
     },
@@ -93,7 +118,7 @@ class _FocusBarState extends State<FocusBar> with WidgetsBindingObserver {
     final time =
         '${pad(elapsed.inHours)}:${pad(elapsed.inMinutes % 60)}:${pad(elapsed.inSeconds % 60)}';
     return Material(
-      color: AppColors.background,
+      type: MaterialType.transparency,
       child: SafeArea(
         top: false,
         minimum: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -101,48 +126,63 @@ class _FocusBarState extends State<FocusBar> with WidgetsBindingObserver {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: Container(
-              key: const ValueKey('focus-bar'),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              decoration: panel(border: AppColors.blue, radius: 24),
-              child: Row(
-                children: [
-                  const Icon(Icons.adjust, color: AppColors.blue, size: 24),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.controller.focusedTask?.title ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.body.copyWith(fontWeight: FontWeight.bold),
-                    ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  key: const ValueKey('focus-bar'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    time,
-                    textDirection: TextDirection.ltr,
-                    style: AppType.body.copyWith(
-                      color: AppColors.blue,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                  decoration: panel(
+                    color: AppColors.surface.withValues(alpha: .72),
+                    border: AppColors.blue,
+                    radius: 24,
                   ),
-                  const SizedBox(width: 8),
-                  Semantics(
-                    label: 'إنهاء التركيز',
-                    button: true,
-                    child: IconButton.filledTonal(
-                      key: const ValueKey('finish-focus'),
-                      onPressed: _saving ? null : _finish,
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.blueDim,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.adjust, color: AppColors.blue, size: 24),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.controller.focusedTask?.title ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.body.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      icon: const Icon(
-                        Icons.stop_rounded,
-                        color: AppColors.text,
+                      const SizedBox(width: 8),
+                      Text(
+                        time,
+                        textDirection: TextDirection.ltr,
+                        style: AppType.body.copyWith(
+                          color: AppColors.blue,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Semantics(
+                        label: 'إنهاء التركيز',
+                        button: true,
+                        child: IconButton.filledTonal(
+                          key: const ValueKey('finish-focus'),
+                          onPressed: _saving ? null : _finish,
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.blueDim,
+                          ),
+                          icon: const Icon(
+                            Icons.stop_rounded,
+                            color: AppColors.text,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

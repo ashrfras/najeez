@@ -234,7 +234,14 @@ void main() {
     );
     final bar = tester.getRect(find.byKey(const ValueKey('focus-bar')));
     expect(bar.bottom, lessThanOrEqualTo(844 - 34));
-    expect(tester.getRect(find.byType(Navigator)).bottom, lessThan(bar.top));
+    expect(tester.getRect(find.byType(Navigator)).bottom, 844);
+    expect(find.byType(BackdropFilter), findsOneWidget);
+    final decoration =
+        tester
+                .widget<Container>(find.byKey(const ValueKey('focus-bar')))
+                .decoration!
+            as BoxDecoration;
+    expect(decoration.color!.a, lessThan(1));
     now = now.add(const Duration(minutes: 12, seconds: 34));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump();
