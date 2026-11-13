@@ -57,9 +57,9 @@ class FocusLayout extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         AppColors.background.withValues(alpha: 0),
-                        AppColors.background.withValues(alpha: .65),
-                        AppColors.background.withValues(alpha: .94),
-                        AppColors.background,
+                        AppColors.background.withValues(alpha: .35),
+                        AppColors.background.withValues(alpha: .60),
+                        AppColors.background.withValues(alpha: .75),
                       ],
                       stops: const [0, .45, .8, 1],
                     ),

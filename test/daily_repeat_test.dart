@@ -480,6 +480,7 @@ void main() {
       expect(find.text('تمت المهمة'), findsNothing);
       expect(find.text('نقل إلى غداً'), findsOneWidget);
       expect(find.text('نقل إلى لاحقاً'), findsOneWidget);
+      expect(find.text('إضافة وقت'), findsNothing);
       expect(find.text('تكرار يومي'), findsNothing);
       await tester.ensureVisible(find.text('المزيد'));
       await tester.tap(find.text('المزيد'));
@@ -487,6 +488,10 @@ void main() {
       expect(find.widgetWithText(TextButton, 'إخفاء'), findsOneWidget);
       expect(find.byIcon(Icons.expand_less), findsOneWidget);
       expect(find.text('تكرار يومي'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('إضافة وقت')).dy,
+        lessThan(tester.getTopLeft(find.text('تكرار يومي')).dy),
+      );
       expect(find.text('حذف المهمة'), findsOneWidget);
       expect(
         tester.getTopLeft(find.text('إخفاء')).dy,
@@ -495,6 +500,7 @@ void main() {
       await tester.ensureVisible(find.text('إخفاء'));
       await tester.tap(find.text('إخفاء'));
       await tester.pumpAndSettle();
+      expect(find.text('إضافة وقت'), findsNothing);
       expect(find.text('تكرار يومي'), findsNothing);
       expect(find.text('حذف المهمة'), findsNothing);
       expect(find.text('تعديل المهمة'), findsOneWidget);

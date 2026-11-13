@@ -569,6 +569,9 @@ void main() {
     );
     await tester.tap(find.text('تقرير'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('المزيد'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('إضافة وقت'));
     await tester.tap(find.text('إضافة وقت'));
     await tester.pumpAndSettle();
     final hoursPicker = find.byKey(const ValueKey('time-hours'));

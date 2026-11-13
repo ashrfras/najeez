@@ -148,6 +148,9 @@ void main() {
       }
       await tester.tap(find.text('مهمة مفتوحة'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('المزيد'));
+      await tester.tap(find.text('المزيد'));
+      await tester.pumpAndSettle();
       expect(find.text('إضافة وقت'), findsNothing);
       expect(find.textContaining('مدة التركيز'), findsNothing);
       expect(find.textContaining('عرض إدخالات الوقت'), findsNothing);
@@ -190,6 +193,10 @@ void main() {
       expect(find.text('تركيز اليوم'), findsOneWidget);
       expect(find.text('إنجاز اليوم'), findsNothing);
       await tester.tap(find.text('مهمة مفتوحة'));
+      await tester.pumpAndSettle();
+      expect(find.text('إضافة وقت'), findsNothing);
+      await tester.ensureVisible(find.text('المزيد'));
+      await tester.tap(find.text('المزيد'));
       await tester.pumpAndSettle();
       expect(find.text('إضافة وقت'), findsOneWidget);
       expect(find.text('مدة التركيز: 1 س 30 د'), findsOneWidget);

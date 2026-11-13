@@ -150,13 +150,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       AppColors.blue,
                       () => _focus(task),
                     ),
-                  if (widget.controller.timeTrackingEnabled)
-                    _action(
-                      Icons.add_alarm_outlined,
-                      'إضافة وقت',
-                      AppColors.blue,
-                      () => _addTime(task),
-                    ),
                   if (widget.controller.timeTrackingEnabled &&
                       task.timeEntries.isNotEmpty)
                     _action(
@@ -214,6 +207,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     AppColors.muted,
                     () => _edit(task),
                   ),
+                  if (showMore && widget.controller.timeTrackingEnabled)
+                    _action(
+                      Icons.add_alarm_outlined,
+                      'إضافة وقت',
+                      AppColors.blue,
+                      () => _addTime(task),
+                    ),
                   if (widget.controller.repeatsDaily(task) || showMore)
                     _action(
                       Icons.repeat,
