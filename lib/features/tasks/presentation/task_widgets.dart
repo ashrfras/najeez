@@ -122,7 +122,9 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
             child: Opacity(
               opacity: 1 - exit,
               child: Material(
-                color: widget.task.isPinned
+                color:
+                    (widget.task.isPinned ||
+                        (widget.controller?.isFocusing(widget.task) ?? false))
                     ? AppColors.blue.withValues(alpha: .06)
                     : Colors.transparent,
                 child: InkWell(
@@ -234,6 +236,16 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                             size: 14,
                             color: AppColors.muted,
                             semanticLabel: 'تكرار يومي',
+                          ),
+                        ],
+                        if (widget.controller?.isFocusing(widget.task) ??
+                            false) ...[
+                          const SizedBox(width: 7),
+                          const Icon(
+                            Icons.adjust,
+                            size: 16,
+                            color: AppColors.blue,
+                            semanticLabel: 'قيد التركيز',
                           ),
                         ],
                         if (widget.task.isPinned) ...[

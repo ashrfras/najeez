@@ -1,3 +1,10 @@
+/// The saved start is the source of truth; no background timer is needed.
+class FocusSession {
+  const FocusSession({required this.taskId, required this.startedAt});
+  final String taskId;
+  final DateTime startedAt;
+}
+
 enum TaskBucket { today, tomorrow, later }
 
 class TimeEntry {

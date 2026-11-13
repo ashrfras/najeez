@@ -112,6 +112,74 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  TimeEntry? _lastFocusEntry;
+  TimeEntry? get lastFocusEntry => _lastFocusEntry;
+  FocusSession? _focusSession;
+  FocusSession? get focusSession => _focusSession;
+  Task? get focusedTask {
+    for (final task in _tasks) {
+      if (task.id == _focusSession?.taskId && !task.isDeleted) return task;
+    }
+    return null;
+  }
+
+  bool isFocusing(Task task) => _focusSession?.taskId == task.id;
+  Duration get focusElapsed {
+    final start = _focusSession?.startedAt;
+    if (start == null) return Duration.zero;
+    final elapsed = now.toUtc().difference(start.toUtc());
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
+
+  Future<void> startFocus(Task task, {bool finishPrevious = false}) =>
+      _serializeRepeat(() async {
+        task = _current(task);
+        if (!_timeTrackingEnabled || task.isDeleted || isFocusing(task)) return;
+        if (_focusSession != null && !finishPrevious) {
+          throw StateError(
+            'Confirm finishing the previous focus session first',
+          );
+        }
+        final session = FocusSession(taskId: task.id, startedAt: now.toUtc());
+        await _saveFocus(session);
+      });
+
+  Future<void> finishFocus() => _serializeRepeat(() => _saveFocus(null));
+
+  Future<void> _saveFocus(FocusSession? next) async {
+    final previous = _focusSession;
+    if (previous == null && next == null) return;
+    Task? updated;
+    final current = focusedTask;
+    if (previous != null && current != null) {
+      // Ignore sessions shorter than a minute; round remaining seconds up at 40.
+      final elapsed = focusElapsed;
+      final minutes =
+          elapsed.inMinutes + (elapsed.inSeconds % 60 >= 40 ? 1 : 0);
+      if (elapsed.inMinutes >= 1) {
+        updated = current.copyWith(
+          updatedAt: now,
+          timeEntries: [
+            ...current.timeEntries,
+            TimeEntry(
+              id: 'focus:${previous.taskId}:${previous.startedAt.toUtc().toIso8601String()}',
+              minutes: minutes,
+              createdAt: now,
+            ),
+          ],
+        );
+      }
+    }
+    await _repository.saveFocusSession(next, task: updated);
+    if (updated != null) {
+      _lastFocusEntry = updated.timeEntries.last;
+      _tasks = [updated, ..._tasks.where((item) => item.id != updated!.id)];
+    }
+    _focusSession = next;
+    error = null;
+    notifyListeners();
+  }
+
   Map<String, int> _categoryColors = {};
 
   Color categoryColor(String? tag) {
@@ -150,6 +218,11 @@ class TaskController extends ChangeNotifier {
       _categoryColors = await _repository.getCategoryColors();
       _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
       _timeTrackingEnabled = await _repository.getTimeTrackingEnabled();
+      _focusSession = await _repository.getFocusSession();
+      if (_focusSession != null && focusedTask == null) {
+        await _repository.saveFocusSession(null);
+        _focusSession = null;
+      }
       await _generateToday();
       error = null;
     } catch (exception) {
@@ -169,15 +242,18 @@ class TaskController extends ChangeNotifier {
     await refreshDay();
   }
 
-  Future<void> setTimeTrackingEnabled(bool enabled) async {
-    await _repository.setTimeTrackingEnabled(enabled);
-    _timeTrackingEnabled = enabled;
-    notifyListeners();
-  }
+  Future<void> setTimeTrackingEnabled(bool enabled) =>
+      _serializeRepeat(() async {
+        if (!enabled) await _saveFocus(null);
+        await _repository.setTimeTrackingEnabled(enabled);
+        _timeTrackingEnabled = enabled;
+        notifyListeners();
+      });
 
   Future<void> reset() => _serializeRepeat(() async {
     await _repository.reset();
     _tasks = [];
+    _focusSession = null;
     _repeats = [];
     _categoryColors = {};
     _timeTrackingEnabled = true;
@@ -314,6 +390,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> delete(Task task, {bool stopRepeating = false}) =>
       _serializeRepeat(() async {
+        if (isFocusing(task)) await _saveFocus(null);
         task = _current(task);
         final deleted = task.copyWith(isDeleted: true, updatedAt: now);
         final repeat = repeatFor(task);

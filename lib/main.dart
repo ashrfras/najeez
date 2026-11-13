@@ -10,7 +10,9 @@ import 'features/backup/backup_controller.dart';
 import 'features/backup/backup_scope.dart';
 import 'features/tasks/data/sqlite_task_repository.dart';
 import 'features/tasks/domain/task_controller.dart';
+import 'features/tasks/domain/task.dart';
 import 'features/tasks/presentation/home_screen.dart';
+import 'features/tasks/presentation/focus_bar.dart';
 import 'features/tasks/presentation/splash_screen.dart';
 
 Future<void> main() async {
@@ -46,6 +48,20 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   String? _lastBackupMessage;
+  TimeEntry? _lastFocusEntry;
+
+  void _focusChanged() {
+    final entry = widget.controller.lastFocusEntry;
+    if (entry == null || identical(entry, _lastFocusEntry)) return;
+    _lastFocusEntry = entry;
+    _messengerKey.currentState?.hideCurrentSnackBar();
+    _messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text('تم تسجيل ${entry.minutes} دقيقة من التركيز'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   void _backupChanged() {
     final message = widget.backup?.message;
@@ -87,6 +103,8 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.backup?.addListener(_backupChanged);
+    _lastFocusEntry = widget.controller.lastFocusEntry;
+    widget.controller.addListener(_focusChanged);
     _showSplash = widget.splashDuration > Duration.zero;
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkBackup());
     if (_showSplash) {
@@ -103,6 +121,7 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.backup?.removeListener(_backupChanged);
+    widget.controller.removeListener(_focusChanged);
     _splashTimer?.cancel();
     super.dispose();
   }
@@ -112,6 +131,17 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
     navigatorKey: _navigatorKey,
     scaffoldMessengerKey: _messengerKey,
     builder: (context, child) {
+      if (!_showSplash) {
+        child = FocusLayout(
+          controller: widget.controller,
+          onError: () => _messengerKey.currentState?.showSnackBar(
+            const SnackBar(
+              content: Text('تعذّر حفظ وقت التركيز. حاول مرة أخرى.'),
+            ),
+          ),
+          child: child!,
+        );
+      }
       final backup = widget.backup;
       if (backup == null) return child!;
       return BackupScope(
@@ -148,6 +178,22 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
       colorScheme: const ColorScheme.dark(
         primary: AppColors.blue,
         surface: AppColors.surface,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.surfaceRaised,
+        contentTextStyle: AppType.body.copyWith(
+          color: AppColors.text,
+          fontFamily: 'Plex Arabic',
+        ),
+        actionTextColor: AppColors.blue,
+        disabledActionTextColor: AppColors.muted,
+        closeIconColor: AppColors.muted,
+        behavior: SnackBarBehavior.floating,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          side: const BorderSide(color: AppColors.border),
+        ),
       ),
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.blue,

@@ -93,6 +93,49 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<FocusSession?> getFocusSession() async {
+    final rows = await _database.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['focus_session'],
+    );
+    if (rows.isEmpty) return null;
+    final value =
+        jsonDecode(rows.single['value'] as String) as Map<String, dynamic>;
+    return FocusSession(
+      taskId: value['taskId'] as String,
+      startedAt: DateTime.parse(value['startedAt'] as String),
+    );
+  }
+
+  @override
+  Future<void> saveFocusSession(FocusSession? session, {Task? task}) =>
+      _database.transaction((txn) async {
+        if (task != null) {
+          await txn.insert(
+            'tasks',
+            _toRow(task),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        if (session == null) {
+          await txn.delete(
+            'settings',
+            where: 'key = ?',
+            whereArgs: ['focus_session'],
+          );
+        } else {
+          await txn.insert('settings', {
+            'key': 'focus_session',
+            'value': jsonEncode({
+              'taskId': session.taskId,
+              'startedAt': session.startedAt.toUtc().toIso8601String(),
+            }),
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      });
+
+  @override
   Future<List<DailyRepeat>> getDailyRepeats() async {
     final rows = await _database.query(
       'settings',

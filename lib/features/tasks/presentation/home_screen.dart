@@ -141,6 +141,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 18),
                   if (widget.controller.timeTrackingEnabled)
                     _action(
+                      widget.controller.isFocusing(task)
+                          ? Icons.stop_circle_outlined
+                          : Icons.adjust,
+                      widget.controller.isFocusing(task)
+                          ? 'إنهاء التركيز'
+                          : 'ابدأ التركيز',
+                      AppColors.blue,
+                      () => _focus(task),
+                    ),
+                  if (widget.controller.timeTrackingEnabled)
+                    _action(
                       Icons.add_alarm_outlined,
                       'إضافة وقت',
                       AppColors.blue,
@@ -261,6 +272,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  Future<void> _focus(Task task) async {
+    final controller = widget.controller;
+    if (controller.isFocusing(task)) {
+      await controller.finishFocus();
+      return;
+    }
+    final previous = controller.focusedTask;
+    if (previous != null) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إنهاء التركيز الحالي؟'),
+          content: Text(
+            'سيُحفظ وقت «${previous.title}» وتبدأ جلسة تركيز على «${task.title}».',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('حفظ وبدء التركيز'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    await controller.startFocus(task, finishPrevious: previous != null);
   }
 
   Future<void> _confirmDelete(Task task) async {

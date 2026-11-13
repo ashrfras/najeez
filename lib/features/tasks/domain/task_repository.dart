@@ -4,6 +4,12 @@ abstract class TaskRepository {
   Future<List<Task>> getTasks();
   Future<void> upsertTask(Task task);
   Future<void> reset();
+  Future<FocusSession?> getFocusSession() async => null;
+  // Persist the time entry and session change together when finishing/switching.
+  Future<void> saveFocusSession(FocusSession? session, {Task? task}) async {
+    if (task != null) await upsertTask(task);
+  }
+
   Future<List<DailyRepeat>> getDailyRepeats() async => [];
   Future<void> saveDailyRepeat(DailyRepeat repeat, {Task? task}) async {
     throw UnsupportedError('Daily repeats are not supported');
