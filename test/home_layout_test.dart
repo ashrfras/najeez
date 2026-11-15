@@ -1,9 +1,10 @@
-import 'package:baqi/main.dart';
-import 'package:baqi/features/tasks/domain/task.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/domain/task_repository.dart';
-import 'package:baqi/features/tasks/presentation/home_screen.dart';
-import 'package:baqi/features/tasks/presentation/task_widgets.dart';
+import 'package:najeez/main.dart';
+import 'package:najeez/features/settings/presentation/settings_screen.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/domain/task_repository.dart';
+import 'package:najeez/features/tasks/presentation/home_screen.dart';
+import 'package:najeez/features/tasks/presentation/task_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -105,6 +106,67 @@ void main() {
       tester.view.padding = FakeViewPadding(top: 47, bottom: bottomInset);
       await tester.pumpAndSettle();
       expect(tester.getRect(scroll).bottom, 600);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final topInset in [0.0, 47.0, 59.0]) {
+    testWidgets('home header stays fixed below $topInset safe inset', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 600);
+      tester.view.padding = FakeViewPadding(top: topInset, bottom: 34);
+      tester.view.viewPadding = FakeViewPadding(top: topInset, bottom: 34);
+      addTearDown(tester.view.reset);
+      final controller = TaskController(
+        VisualRepository(),
+        clock: () => DateTime(2026, 10, 11, 10, 24),
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      await tester.pumpWidget(
+        BaqiApp(controller: controller, splashDuration: Duration.zero),
+      );
+      await tester.pumpAndSettle();
+
+      final header = find.byKey(const ValueKey('home-header'));
+      final settings = find.byTooltip('الإعدادات');
+      final logo = find.byType(Image);
+      final headerRect = tester.getRect(header);
+      final logoRect = tester.getRect(logo);
+      final settingsRect = tester.getRect(settings);
+      final captureRect = tester.getRect(find.byType(TaskCaptureBar));
+      expect(headerRect.top, 0);
+      expect(settingsRect.top, topInset + 4);
+      expect(tester.widget<ColoredBox>(header).color.a, 1);
+
+      final scroll = tester
+          .widget<CustomScrollView>(find.byType(CustomScrollView))
+          .controller!;
+      scroll.jumpTo(100);
+      await tester.pump();
+      expect(tester.getRect(header), headerRect);
+      expect(tester.getRect(logo), logoRect);
+      expect(tester.getRect(settings), settingsRect);
+      expect(tester.widget<ColoredBox>(header).color.a, closeTo(.78, .01));
+      expect(
+        tester.getRect(find.byType(TaskCaptureBar)).top,
+        closeTo(captureRect.top - 100, .01),
+      );
+      expect(
+        tester.getRect(find.byType(TaskCaptureBar)).top,
+        lessThan(headerRect.bottom),
+      );
+
+      scroll.jumpTo(0);
+      await tester.pump();
+      expect(tester.widget<ColoredBox>(header).color.a, 1);
+      scroll.jumpTo(100);
+      await tester.pump();
+      await tester.tap(settings);
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

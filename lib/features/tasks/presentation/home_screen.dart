@@ -26,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _dayTimer;
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_refresh);
     _dayTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -672,24 +674,153 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       widget.controller.logicalDay,
     );
 
+    final topInset = MediaQuery.paddingOf(context).top;
+    // Use the system safe inset once, with minimal clearance below the notch.
+    final headerHeight = topInset + 4 + 36 + 12;
+
     return Scaffold(
       body: StatusBarFade(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 540),
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  // Keep gesture clearance inside the scrollable viewport.
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    12 + MediaQuery.paddingOf(context).top,
-                    16,
-                    28 + MediaQuery.paddingOf(context).bottom,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      SizedBox(
+            child: Stack(
+              children: [
+                CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    SliverPadding(
+                      // Keep gesture clearance inside the scrollable viewport.
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        headerHeight,
+                        16,
+                        28 + MediaQuery.paddingOf(context).bottom,
+                      ),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          Row(
+                            children: [
+                              _Stat(
+                                value: '${completed.length}',
+                                label: 'تم اليوم',
+                                color: AppColors.green,
+                                icon: Icons.check,
+                                onTap: () =>
+                                    _openList(TaskListKind.completedToday),
+                              ),
+                              const SizedBox(width: 8),
+                              _Stat(
+                                value: tracking
+                                    ? compactDurationLabel(
+                                        workTime.todayMinutes,
+                                      )
+                                    : '${completions.todayCount}',
+                                label: tracking ? 'تركيز اليوم' : 'إنجاز اليوم',
+                                color: AppColors.blue,
+                                icon: tracking
+                                    ? Icons.schedule_outlined
+                                    : Icons.check_circle_outline,
+                                onTap: _openStatistics,
+                              ),
+                              const SizedBox(width: 8),
+                              _Stat(
+                                value: !tracking
+                                    ? completions.averageLabel
+                                    : workTime.averageMinutes == null
+                                    ? '-'
+                                    : compactDurationLabel(
+                                        workTime.averageMinutes!,
+                                      ),
+                                label: 'متوسط 7 أيام',
+                                color: AppColors.orange,
+                                icon: Icons.trending_up_rounded,
+                                onTap: _openStatistics,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          TaskCaptureBar(onTap: _openComposer),
+                          const SizedBox(height: 14),
+                          TaskSection(
+                            controller: widget.controller,
+                            title: 'اليوم',
+                            tasks: today,
+                            showTime: tracking,
+                            accent: AppColors.blue,
+                            icon: Icons.adjust,
+                            previewLimit: 5,
+                            scrollOverflow: true,
+                            onOpenAll: () => _openList(TaskListKind.today),
+                            onToggle: _toggleTask,
+                            onActions: _showActions,
+                          ),
+                          const SizedBox(height: 13),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TaskSection(
+                                  controller: widget.controller,
+                                  title: 'غداً',
+                                  tasks: tomorrow,
+                                  accent: AppColors.blue,
+                                  icon: Icons.calendar_month_outlined,
+                                  previewLimit: 2,
+                                  denseRows: true,
+                                  showTime: false,
+                                  onOpenAll: () =>
+                                      _openList(TaskListKind.tomorrow),
+                                  onToggle: _toggleTask,
+                                  onActions: _showActions,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TaskSection(
+                                  controller: widget.controller,
+                                  title: 'لاحقاً',
+                                  tasks: later,
+                                  accent: AppColors.orange,
+                                  icon: Icons.all_inclusive,
+                                  previewLimit: 2,
+                                  denseRows: true,
+                                  showTime: false,
+                                  onOpenAll: () =>
+                                      _openList(TaskListKind.later),
+                                  onToggle: _toggleTask,
+                                  onActions: _showActions,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 13),
+                          TaskSection(
+                            controller: widget.controller,
+                            title: 'تم اليوم',
+                            tasks: completed,
+                            showTime: tracking,
+                            accent: AppColors.green,
+                            icon: Icons.check,
+                            previewLimit: 3,
+                            onOpenAll: () =>
+                                _openList(TaskListKind.completedToday),
+                            onToggle: _toggleTask,
+                            onActions: _showActions,
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedBuilder(
+                    animation: _scrollController,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, topInset + 4, 16, 12),
+                      child: SizedBox(
                         height: 36,
                         child: Row(
                           children: [
@@ -739,111 +870,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _Stat(
-                            value: '${completed.length}',
-                            label: 'تم اليوم',
-                            color: AppColors.green,
-                            icon: Icons.check,
-                            onTap: () => _openList(TaskListKind.completedToday),
-                          ),
-                          const SizedBox(width: 8),
-                          _Stat(
-                            value: tracking
-                                ? compactDurationLabel(workTime.todayMinutes)
-                                : '${completions.todayCount}',
-                            label: tracking ? 'تركيز اليوم' : 'إنجاز اليوم',
-                            color: AppColors.blue,
-                            icon: tracking
-                                ? Icons.schedule_outlined
-                                : Icons.check_circle_outline,
-                            onTap: _openStatistics,
-                          ),
-                          const SizedBox(width: 8),
-                          _Stat(
-                            value: !tracking
-                                ? completions.averageLabel
-                                : workTime.averageMinutes == null
-                                ? '-'
-                                : compactDurationLabel(
-                                    workTime.averageMinutes!,
-                                  ),
-                            label: 'متوسط 7 أيام',
-                            color: AppColors.orange,
-                            icon: Icons.trending_up_rounded,
-                            onTap: _openStatistics,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      TaskCaptureBar(onTap: _openComposer),
-                      const SizedBox(height: 14),
-                      TaskSection(
-                        controller: widget.controller,
-                        title: 'اليوم',
-                        tasks: today,
-                        showTime: tracking,
-                        accent: AppColors.blue,
-                        icon: Icons.adjust,
-                        previewLimit: 5,
-                        scrollOverflow: true,
-                        onOpenAll: () => _openList(TaskListKind.today),
-                        onToggle: _toggleTask,
-                        onActions: _showActions,
-                      ),
-                      const SizedBox(height: 13),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TaskSection(
-                              controller: widget.controller,
-                              title: 'غداً',
-                              tasks: tomorrow,
-                              accent: AppColors.blue,
-                              icon: Icons.calendar_month_outlined,
-                              previewLimit: 2,
-                              denseRows: true,
-                              showTime: false,
-                              onOpenAll: () => _openList(TaskListKind.tomorrow),
-                              onToggle: _toggleTask,
-                              onActions: _showActions,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TaskSection(
-                              controller: widget.controller,
-                              title: 'لاحقاً',
-                              tasks: later,
-                              accent: AppColors.orange,
-                              icon: Icons.all_inclusive,
-                              previewLimit: 2,
-                              denseRows: true,
-                              showTime: false,
-                              onOpenAll: () => _openList(TaskListKind.later),
-                              onToggle: _toggleTask,
-                              onActions: _showActions,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 13),
-                      TaskSection(
-                        controller: widget.controller,
-                        title: 'تم اليوم',
-                        tasks: completed,
-                        showTime: tracking,
-                        accent: AppColors.green,
-                        icon: Icons.check,
-                        previewLimit: 3,
-                        onOpenAll: () => _openList(TaskListKind.completedToday),
-                        onToggle: _toggleTask,
-                        onActions: _showActions,
-                      ),
-                    ]),
+                    ),
+                    builder: (context, child) {
+                      final scroll = _scrollController.hasClients
+                          ? (_scrollController.offset / 48).clamp(0.0, 1.0)
+                          : 0.0;
+                      return ColoredBox(
+                        key: const ValueKey('home-header'),
+                        color: AppColors.background.withValues(
+                          alpha: 1 - .22 * scroll,
+                        ),
+                        child: child,
+                      );
+                    },
                   ),
                 ),
               ],
