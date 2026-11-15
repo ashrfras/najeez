@@ -1,7 +1,7 @@
-import 'package:baqi/features/tasks/domain/task.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/domain/task_repository.dart';
-import 'package:baqi/main.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/domain/task_repository.dart';
+import 'package:najeez/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

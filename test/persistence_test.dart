@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:baqi/features/tasks/data/sqlite_task_repository.dart';
-import 'package:baqi/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/data/sqlite_task_repository.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
@@ -28,6 +28,13 @@ void main() {
         completedAt: created,
         tag: 'عمل',
         isDeleted: true,
+        notes: [
+          TaskNote(
+            id: 'note-1',
+            text: 'نص الملاحظة\nسطر آخر',
+            createdAt: created,
+          ),
+        ],
         timeEntries: [
           TimeEntry(id: 'entry-1', minutes: 95, createdAt: created),
         ],
@@ -41,6 +48,8 @@ void main() {
     expect(await reopened.getTimeTrackingEnabled(), isFalse);
     await reopened.setTimeTrackingEnabled(true);
     expect((await reopened.getTasks()).single.totalMinutes, 95);
+    expect(task.notes.single.text, 'نص الملاحظة\nسطر آخر');
+    expect(task.notes.single.createdAt, created);
     expect(task.id, 'stable-id');
     expect(task.completedAt, created);
     expect(task.isDeleted, isTrue);

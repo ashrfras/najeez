@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:baqi/main.dart';
-import 'package:baqi/core/design.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/domain/task.dart';
-import 'package:baqi/features/tasks/domain/task_repository.dart';
-import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
-import 'package:baqi/features/tasks/presentation/task_widgets.dart';
-import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
-import 'package:baqi/features/settings/presentation/settings_screen.dart';
+import 'package:najeez/main.dart';
+import 'package:najeez/core/design.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/domain/task_repository.dart';
+import 'package:najeez/features/tasks/presentation/task_list_screen.dart';
+import 'package:najeez/features/tasks/presentation/task_widgets.dart';
+import 'package:najeez/features/statistics/presentation/statistics_screen.dart';
+import 'package:najeez/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

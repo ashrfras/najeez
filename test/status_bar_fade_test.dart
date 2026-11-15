@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:baqi/core/status_bar_fade.dart';
+import 'package:najeez/core/status_bar_fade.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';

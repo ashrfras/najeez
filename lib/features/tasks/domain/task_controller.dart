@@ -409,6 +409,78 @@ class TaskController extends ChangeNotifier {
         }
       });
 
+  // Include notes from archived/deleted tasks so their history stays readable.
+  List<({Task task, TaskNote note})> searchNotes([String query = '']) {
+    final clean = query.trim().toLowerCase();
+    final result = [
+      for (final task in _tasks)
+        for (final note in task.notes)
+          if (clean.isEmpty ||
+              note.text.toLowerCase().contains(clean) ||
+              task.title.toLowerCase().contains(clean))
+            (task: task, note: note),
+    ];
+    result.sort((a, b) {
+      final date = b.note.createdAt.compareTo(a.note.createdAt);
+      return date != 0 ? date : b.note.id.compareTo(a.note.id);
+    });
+    return result;
+  }
+
+  Future<void> addNote(Task task, String text) => _serializeRepeat(() async {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+    final current = _current(task);
+    if (current.isDeleted) return;
+    final timestamp = now;
+    final id = List.generate(
+      16,
+      (_) => _random.nextInt(256),
+    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    await _save(
+      current.copyWith(
+        updatedAt: timestamp,
+        notes: [
+          ...current.notes,
+          TaskNote(id: id, text: clean, createdAt: timestamp),
+        ],
+      ),
+    );
+  });
+
+  Future<void> updateNote(Task task, TaskNote note, String text) =>
+      _serializeRepeat(() async {
+        final clean = text.trim();
+        if (clean.isEmpty) return;
+        final current = _current(task);
+        final existing = current.notes.firstWhere((item) => item.id == note.id);
+        if (existing.text == clean) return;
+        await _save(
+          current.copyWith(
+            updatedAt: now,
+            notes: [
+              for (final item in current.notes)
+                if (item.id == note.id)
+                  TaskNote(id: item.id, text: clean, createdAt: item.createdAt)
+                else
+                  item,
+            ],
+          ),
+        );
+      });
+
+  Future<void> deleteNote(Task task, TaskNote note) =>
+      _serializeRepeat(() async {
+        final current = _current(task);
+        if (!current.notes.any((item) => item.id == note.id)) return;
+        await _save(
+          current.copyWith(
+            updatedAt: now,
+            notes: current.notes.where((item) => item.id != note.id).toList(),
+          ),
+        );
+      });
+
   Future<void> addTimeEntry(
     Task task, {
     required int hours,

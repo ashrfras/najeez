@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:convert';
 
-import 'package:baqi/main.dart';
-import 'package:baqi/core/design.dart';
-import 'package:baqi/features/tasks/data/sqlite_task_repository.dart';
-import 'package:baqi/features/tasks/domain/task.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/presentation/task_list_screen.dart';
+import 'package:najeez/main.dart';
+import 'package:najeez/core/design.dart';
+import 'package:najeez/features/tasks/data/sqlite_task_repository.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/presentation/task_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';

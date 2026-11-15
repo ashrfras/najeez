@@ -17,7 +17,7 @@ class SqliteTaskRepository implements TaskRepository {
         (kIsWeb ? 'baqi.db' : path.join(await getDatabasesPath(), 'baqi.db'));
     final database = await openDatabase(
       location,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks (
@@ -33,7 +33,8 @@ class SqliteTaskRepository implements TaskRepository {
             repeat_id TEXT,
             repeat_day TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0,
-            time_entries TEXT NOT NULL DEFAULT '[]'
+            time_entries TEXT NOT NULL DEFAULT '[]',
+            notes TEXT NOT NULL DEFAULT '[]'
           )
         ''');
         await db.execute(
@@ -44,6 +45,11 @@ class SqliteTaskRepository implements TaskRepository {
         );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 8) {
+          await db.execute(
+            "ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT '[]'",
+          );
+        }
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE tasks ADD COLUMN tag TEXT');
         }
@@ -344,6 +350,16 @@ class SqliteTaskRepository implements TaskRepository {
     repeatId: row['repeat_id'] as String?,
     repeatDay: _date(row['repeat_day']),
     isDeleted: row['is_deleted'] == 1,
+    notes: (jsonDecode(row['notes'] as String? ?? '[]') as List<dynamic>).map((
+      value,
+    ) {
+      final note = value as Map<String, dynamic>;
+      return TaskNote(
+        id: note['id'] as String,
+        text: note['text'] as String,
+        createdAt: DateTime.parse(note['created_at'] as String),
+      );
+    }).toList(),
     timeEntries: (jsonDecode(row['time_entries'] as String) as List<dynamic>)
         .map((value) {
           final entry = value as Map<String, dynamic>;
@@ -372,6 +388,17 @@ class SqliteTaskRepository implements TaskRepository {
     'repeat_id': task.repeatId,
     'repeat_day': task.repeatDay?.toIso8601String(),
     'is_deleted': task.isDeleted ? 1 : 0,
+    'notes': jsonEncode(
+      task.notes
+          .map(
+            (note) => {
+              'id': note.id,
+              'text': note.text,
+              'created_at': note.createdAt.toIso8601String(),
+            },
+          )
+          .toList(),
+    ),
     'time_entries': jsonEncode(
       task.timeEntries
           .map(

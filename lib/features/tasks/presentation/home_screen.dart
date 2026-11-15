@@ -16,6 +16,7 @@ import 'task_composer_screen.dart';
 import 'daily_repeat_confirmation.dart';
 import 'task_list_screen.dart';
 import 'task_widgets.dart';
+import 'notes_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.controller});
@@ -203,6 +204,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         () => widget.controller.move(task, TaskBucket.later),
                       ),
                   ],
+                  _action(
+                    Icons.note_add_outlined,
+                    'إضافة ملاحظة',
+                    AppColors.blue,
+                    () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        fullscreenDialog: true,
+                        builder: (_) => NoteComposerScreen(
+                          controller: widget.controller,
+                          task: task,
+                        ),
+                      ),
+                    ),
+                  ),
                   _action(
                     Icons.edit_outlined,
                     'تعديل المهمة',
@@ -807,6 +822,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             onToggle: _toggleTask,
                             onActions: _showActions,
                           ),
+                          const SizedBox(height: 13),
+                          RecentNotesSection(controller: widget.controller),
                         ]),
                       ),
                     ),

@@ -27,6 +27,18 @@ String durationLabel(int minutes) {
   return '$hours س $remainder د';
 }
 
+class TaskNote {
+  const TaskNote({
+    required this.id,
+    required this.text,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String text;
+  final DateTime createdAt;
+}
+
 class Task {
   const Task({
     required this.id,
@@ -42,6 +54,7 @@ class Task {
     this.tag,
     this.isDeleted = false,
     this.timeEntries = const [],
+    this.notes = const [],
   });
 
   final String id;
@@ -57,6 +70,7 @@ class Task {
   final String? tag;
   final bool isDeleted;
   final List<TimeEntry> timeEntries;
+  final List<TaskNote> notes;
 
   bool get isCompleted => completedAt != null;
   bool get isPinned => pinnedAt != null;
@@ -79,6 +93,7 @@ class Task {
     bool clearTag = false,
     bool? isDeleted,
     List<TimeEntry>? timeEntries,
+    List<TaskNote>? notes,
   }) => Task(
     id: id,
     title: title ?? this.title,
@@ -95,6 +110,7 @@ class Task {
     tag: clearTag ? null : tag ?? this.tag,
     isDeleted: isDeleted ?? this.isDeleted,
     timeEntries: timeEntries ?? this.timeEntries,
+    notes: notes ?? this.notes,
   );
 }
 

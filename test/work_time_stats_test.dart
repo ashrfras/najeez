@@ -1,6 +1,6 @@
-import 'package:baqi/features/tasks/domain/task.dart';
-import 'package:baqi/features/tasks/domain/work_time_stats.dart';
-import 'package:baqi/features/tasks/domain/task_dates.dart';
+import 'package:najeez/features/tasks/domain/task.dart';
+import 'package:najeez/features/tasks/domain/work_time_stats.dart';
+import 'package:najeez/features/tasks/domain/task_dates.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

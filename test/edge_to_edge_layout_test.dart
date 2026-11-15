@@ -1,6 +1,6 @@
-import 'package:baqi/features/settings/presentation/settings_screen.dart';
-import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/settings/presentation/settings_screen.dart';
+import 'package:najeez/features/statistics/presentation/statistics_screen.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

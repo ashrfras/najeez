@@ -5,6 +5,7 @@ import 'package:najeez/features/tasks/domain/task_controller.dart';
 import 'package:najeez/features/tasks/domain/task_repository.dart';
 import 'package:najeez/features/tasks/presentation/home_screen.dart';
 import 'package:najeez/features/tasks/presentation/task_widgets.dart';
+import 'package:najeez/features/tasks/presentation/notes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,7 +86,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(position.pixels, closeTo(position.maxScrollExtent, .01));
       expect(
-        tester.getRect(find.byType(TaskSection).last).bottom,
+        tester.getRect(find.byType(RecentNotesSection)).bottom,
         closeTo(600 - bottomInset - 28, .01),
       );
       expect(find.text('تعديل مشكلة Firebase').hitTestable(), findsOneWidget);
@@ -98,7 +99,7 @@ void main() {
       await tester.drag(scroll, const Offset(0, -1000));
       await tester.pumpAndSettle();
       expect(
-        tester.getRect(find.byType(TaskSection).last).bottom,
+        tester.getRect(find.byType(RecentNotesSection)).bottom,
         closeTo(300 - 28, .01),
       );
 

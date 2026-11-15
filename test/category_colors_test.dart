@@ -1,8 +1,8 @@
-import 'package:baqi/core/design.dart';
-import 'package:baqi/features/statistics/presentation/statistics_screen.dart';
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/presentation/task_composer_screen.dart';
-import 'package:baqi/features/tasks/presentation/task_widgets.dart';
+import 'package:najeez/core/design.dart';
+import 'package:najeez/features/statistics/presentation/statistics_screen.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/presentation/task_composer_screen.dart';
+import 'package:najeez/features/tasks/presentation/task_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';

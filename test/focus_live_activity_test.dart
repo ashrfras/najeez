@@ -1,5 +1,5 @@
-import 'package:baqi/features/tasks/domain/task_controller.dart';
-import 'package:baqi/features/tasks/platform/focus_live_activity.dart';
+import 'package:najeez/features/tasks/domain/task_controller.dart';
+import 'package:najeez/features/tasks/platform/focus_live_activity.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
