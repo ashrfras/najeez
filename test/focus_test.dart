@@ -205,6 +205,55 @@ void main() {
     },
   );
 
+  testWidgets('keyboard hides focus bar and releases its reserved space', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    addTearDown(tester.view.reset);
+    var now = DateTime.utc(2026, 11, 12);
+    final controller = TaskController(FocusRepository(), clock: () => now);
+    addTearDown(controller.dispose);
+    await controller.load();
+    await controller.create('مهمة');
+    await controller.startFocus(controller.tasks.single);
+    await tester.pumpWidget(
+      BaqiApp(controller: controller, splashDuration: Duration.zero),
+    );
+    await tester.pumpAndSettle();
+
+    double bottomPadding() =>
+        MediaQuery.paddingOf(tester.element(find.byType(Navigator))).bottom;
+    final reservedPadding = bottomPadding();
+    expect(reservedPadding, greaterThan(34));
+    expect(find.byType(FocusBar), findsOneWidget);
+
+    await tester.tap(find.text('أضف مهمة ...'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'مسودة');
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    tester.view.padding = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(find.byType(FocusBar), findsNothing);
+    expect(bottomPadding(), 0);
+    expect(controller.focusedTask, isNotNull);
+
+    now = now.add(const Duration(minutes: 12));
+    tester.view.viewInsets = FakeViewPadding.zero;
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    await tester.pumpAndSettle();
+    expect(find.byType(FocusBar), findsOneWidget);
+    expect(bottomPadding(), reservedPadding);
+    expect(find.text('00:12:00'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+      'مسودة',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('focus bar fits iPhone safe area; switch can cancel or save', (
     tester,
   ) async {
@@ -235,7 +284,13 @@ void main() {
     final bar = tester.getRect(find.byKey(const ValueKey('focus-bar')));
     expect(bar.bottom, lessThanOrEqualTo(844 - 34));
     expect(tester.getRect(find.byType(Navigator)).bottom, 844);
-    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(FocusBar),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
     final decoration =
         tester
                 .widget<Container>(find.byKey(const ValueKey('focus-bar')))

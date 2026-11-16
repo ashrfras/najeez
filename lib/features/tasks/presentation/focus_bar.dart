@@ -22,8 +22,9 @@ class FocusLayout extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
     builder: (context, _) {
-      final active = controller.focusedTask != null;
       final media = MediaQuery.of(context);
+      final showBar =
+          controller.focusedTask != null && media.viewInsets.bottom == 0;
       final text = TextPainter(
         text: const TextSpan(text: '00:00:00', style: AppType.body),
         textDirection: TextDirection.ltr,
@@ -38,12 +39,12 @@ class FocusLayout extends StatelessWidget {
           MediaQuery(
             data: media.copyWith(
               padding: media.padding.copyWith(
-                bottom: media.padding.bottom + (active ? clearance : 0),
+                bottom: media.padding.bottom + (showBar ? clearance : 0),
               ),
             ),
             child: child,
           ),
-          if (active)
+          if (showBar)
             Positioned(
               left: 0,
               right: 0,
@@ -67,7 +68,7 @@ class FocusLayout extends StatelessWidget {
                 ),
               ),
             ),
-          if (active)
+          if (showBar)
             Positioned(
               left: 0,
               right: 0,
