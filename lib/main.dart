@@ -149,8 +149,21 @@ class _BaqiAppState extends State<BaqiApp> with WidgetsBindingObserver {
           child: child!,
         );
       }
+      child = Actions(
+        actions: <Type, Action<Intent>>{
+          // Also dismiss for touch input on iOS and Android.
+          EditableTextTapOutsideIntent:
+              CallbackAction<EditableTextTapOutsideIntent>(
+                onInvoke: (intent) {
+                  intent.focusNode.unfocus();
+                  return null;
+                },
+              ),
+        },
+        child: child!,
+      );
       final backup = widget.backup;
-      if (backup == null) return child!;
+      if (backup == null) return child;
       return BackupScope(
         controller: backup,
         child: AnimatedBuilder(
