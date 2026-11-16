@@ -386,14 +386,14 @@ class _NoteComposerScreenState extends State<NoteComposerScreen> {
                                       widget.controller.now,
                                 ),
                                 style: AppType.caption.copyWith(
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   height: 1,
                                 ),
                                 strutStyle: StrutStyle(
                                   fontFamily: Theme.of(
                                     context,
                                   ).textTheme.bodyMedium!.fontFamily,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   height: 1,
                                   forceStrutHeight: true,
                                 ),
@@ -833,7 +833,10 @@ class RecentNotesSection extends StatelessWidget {
           ],
           TextButton(
             onPressed: () => _openAll(context),
-            child: const Text('عرض الكل'),
+            child: Text(
+              'عرض الكل',
+              style: AppType.body.copyWith(color: AppColors.blue, fontSize: 12),
+            ),
           ),
         ],
       ),
