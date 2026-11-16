@@ -29,6 +29,7 @@ String durationLabel(int minutes) {
 
 class TaskNote {
   const TaskNote({
+    this.title = '',
     required this.id,
     required this.text,
     required this.createdAt,
@@ -36,6 +37,7 @@ class TaskNote {
 
   final String id;
   final String text;
+  final String title;
   final DateTime createdAt;
 }
 

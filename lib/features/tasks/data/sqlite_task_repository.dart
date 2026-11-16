@@ -357,6 +357,7 @@ class SqliteTaskRepository implements TaskRepository {
       return TaskNote(
         id: note['id'] as String,
         text: note['text'] as String,
+        title: note['title'] as String? ?? '',
         createdAt: DateTime.parse(note['created_at'] as String),
       );
     }).toList(),
@@ -394,6 +395,7 @@ class SqliteTaskRepository implements TaskRepository {
             (note) => {
               'id': note.id,
               'text': note.text,
+              'title': note.title,
               'created_at': note.createdAt.toIso8601String(),
             },
           )

@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _action(
                       widget.controller.isFocusing(task)
                           ? Icons.stop_circle_outlined
-                          : Icons.adjust,
+                          : Icons.gps_fixed,
                       widget.controller.isFocusing(task)
                           ? 'إنهاء التركيز'
                           : 'ابدأ التركيز',
@@ -205,13 +205,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                   ],
                   _action(
-                    Icons.note_add_outlined,
+                    Icons.notes_outlined,
                     'إضافة ملاحظة',
                     AppColors.blue,
                     () => Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
-                        fullscreenDialog: true,
                         builder: (_) => NoteComposerScreen(
+                          onTaskActions: _showActions,
                           controller: widget.controller,
                           task: task,
                         ),
@@ -620,7 +620,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           Transform.rotate(
             angle: iconRotation,
-            child: Icon(icon, color: color, size: 22),
+            child: AppIcon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 15),
           Text(label, style: AppType.body),
@@ -651,6 +651,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         kind: kind,
         onToggle: _toggleTask,
         onActions: _showActions,
+      ),
+    ),
+  );
+
+  void _openNotes() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => NotesScreen(
+        controller: widget.controller,
+        onTaskActions: _showActions,
       ),
     ),
   );
@@ -823,7 +832,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             onActions: _showActions,
                           ),
                           const SizedBox(height: 13),
-                          RecentNotesSection(controller: widget.controller),
+                          RecentNotesSection(
+                            controller: widget.controller,
+                            onTaskActions: _showActions,
+                          ),
                         ]),
                       ),
                     ),
@@ -840,7 +852,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       child: SizedBox(
                         height: 36,
                         child: Row(
+                          textDirection: TextDirection.rtl,
                           children: [
+                            Image.asset(
+                              'assets/logo_mark.png',
+                              width: 58,
+                              height: 28,
+                              fit: BoxFit.contain,
+                              semanticLabel: 'نجيز',
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 arabicDate(
@@ -848,41 +869,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
                                 style: AppType.caption,
                               ),
                             ),
-                            SizedBox(
-                              width: 66,
-                              child: Center(
-                                child: Image.asset(
-                                  'assets/logo_mark.png',
-                                  width: 58,
-                                  height: 28,
-                                  fit: BoxFit.contain,
-                                  semanticLabel: 'نجيز',
-                                ),
-                              ),
+                            const SizedBox(width: 12),
+                            _HeaderIcon(
+                              icon: Icons.notes_outlined,
+                              tooltip: 'الملاحظات',
+                              onTap: _openNotes,
                             ),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _HeaderIcon(
-                                      icon: Icons.bar_chart_rounded,
-                                      tooltip: 'الإحصاءات',
-                                      onTap: _openStatistics,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    _HeaderIcon(
-                                      icon: Icons.settings_outlined,
-                                      tooltip: 'الإعدادات',
-                                      onTap: _openSettings,
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            const SizedBox(width: 6),
+                            _HeaderIcon(
+                              icon: Icons.bar_chart_rounded,
+                              tooltip: 'الإحصاءات',
+                              onTap: _openStatistics,
+                            ),
+                            const SizedBox(width: 6),
+                            _HeaderIcon(
+                              icon: Icons.settings_outlined,
+                              tooltip: 'الإعدادات',
+                              onTap: _openSettings,
                             ),
                           ],
                         ),
@@ -932,7 +939,7 @@ class _HeaderIcon extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: panel(radius: 12),
-        child: Icon(icon, size: 20, color: AppColors.muted),
+        child: AppIcon(icon, size: 20, color: AppColors.muted),
       ),
     ),
   );

@@ -76,3 +76,24 @@ BoxDecoration panel({
   borderRadius: BorderRadius.circular(radius),
   border: Border.all(color: border ?? AppColors.border, width: .8),
 );
+
+/// Material note glyphs do not mirror themselves in RTL layouts.
+class AppIcon extends StatelessWidget {
+  const AppIcon(this.icon, {super.key, this.size, this.color});
+
+  final IconData icon;
+  final double? size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Icon(icon, size: size, color: color);
+    final isNote =
+        icon == Icons.notes_outlined || icon == Icons.note_add_outlined;
+    if (!isNote) return child;
+    return Transform.flip(
+      flipX: Directionality.of(context) == TextDirection.rtl,
+      child: child,
+    );
+  }
+}

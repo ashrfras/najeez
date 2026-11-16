@@ -1,4 +1,5 @@
 import 'package:najeez/main.dart';
+import 'package:najeez/core/arabic_dates.dart';
 import 'package:najeez/features/settings/presentation/settings_screen.dart';
 import 'package:najeez/features/tasks/domain/task.dart';
 import 'package:najeez/features/tasks/domain/task_controller.dart';
@@ -199,7 +200,27 @@ void main() {
     expect(find.text('0د'), findsOneWidget);
     expect(find.text('متوسط 7 أيام'), findsOneWidget);
     expect(find.text('-'), findsOneWidget);
-    expect(tester.getCenter(find.byType(Image)).dx, closeTo(195, 0.5));
+    expect(tester.getRect(find.byType(Image)).right, 374);
+    final date = find.text(
+      arabicDate(controller.logicalDay.dayOf(controller.now)),
+    );
+    expect(
+      tester.getRect(date).right,
+      lessThan(tester.getRect(find.byType(Image)).left),
+    );
+    final notes = find.byTooltip('الملاحظات');
+    expect(tester.getRect(find.byTooltip('الإعدادات')).left, 16);
+    expect(
+      tester.getRect(find.byTooltip('الإحصاءات')).right,
+      lessThan(tester.getRect(notes).left),
+    );
+    expect(
+      tester.getRect(find.byTooltip('الإعدادات')).right,
+      lessThan(tester.getRect(find.byTooltip('الإحصاءات')).left),
+    );
+    await tester.tap(notes);
+    await tester.pumpAndSettle();
+    expect(find.byType(NotesScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

@@ -417,6 +417,7 @@ class TaskController extends ChangeNotifier {
         for (final note in task.notes)
           if (clean.isEmpty ||
               note.text.toLowerCase().contains(clean) ||
+              note.title.toLowerCase().contains(clean) ||
               task.title.toLowerCase().contains(clean))
             (task: task, note: note),
     ];
@@ -427,47 +428,63 @@ class TaskController extends ChangeNotifier {
     return result;
   }
 
-  Future<void> addNote(Task task, String text) => _serializeRepeat(() async {
-    final clean = text.trim();
-    if (clean.isEmpty) return;
-    final current = _current(task);
-    if (current.isDeleted) return;
-    final timestamp = now;
-    final id = List.generate(
-      16,
-      (_) => _random.nextInt(256),
-    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
-    await _save(
-      current.copyWith(
-        updatedAt: timestamp,
-        notes: [
-          ...current.notes,
-          TaskNote(id: id, text: clean, createdAt: timestamp),
-        ],
-      ),
-    );
-  });
-
-  Future<void> updateNote(Task task, TaskNote note, String text) =>
+  Future<void> addNote(Task task, String text, {String title = ''}) =>
       _serializeRepeat(() async {
         final clean = text.trim();
-        if (clean.isEmpty) return;
+        if (clean.isEmpty && title.trim().isEmpty) return;
         final current = _current(task);
-        final existing = current.notes.firstWhere((item) => item.id == note.id);
-        if (existing.text == clean) return;
+        if (current.isDeleted) return;
+        final timestamp = now;
+        final id = List.generate(
+          16,
+          (_) => _random.nextInt(256),
+        ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
         await _save(
           current.copyWith(
-            updatedAt: now,
+            updatedAt: timestamp,
             notes: [
-              for (final item in current.notes)
-                if (item.id == note.id)
-                  TaskNote(id: item.id, text: clean, createdAt: item.createdAt)
-                else
-                  item,
+              ...current.notes,
+              TaskNote(
+                id: id,
+                text: clean,
+                title: title.trim(),
+                createdAt: timestamp,
+              ),
             ],
           ),
         );
       });
+
+  Future<void> updateNote(
+    Task task,
+    TaskNote note,
+    String text, {
+    String? title,
+  }) => _serializeRepeat(() async {
+    final clean = text.trim();
+    final current = _current(task);
+    final existing = current.notes.firstWhere((item) => item.id == note.id);
+    final cleanTitle = (title ?? existing.title).trim();
+    if (clean.isEmpty && cleanTitle.isEmpty) return;
+    if (existing.text == clean && existing.title == cleanTitle) return;
+    await _save(
+      current.copyWith(
+        updatedAt: now,
+        notes: [
+          for (final item in current.notes)
+            if (item.id == note.id)
+              TaskNote(
+                id: item.id,
+                text: clean,
+                title: cleanTitle,
+                createdAt: item.createdAt,
+              )
+            else
+              item,
+        ],
+      ),
+    );
+  });
 
   Future<void> deleteNote(Task task, TaskNote note) =>
       _serializeRepeat(() async {

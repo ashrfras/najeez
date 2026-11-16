@@ -42,7 +42,11 @@ void main() {
       await controller.load();
       await controller.create('مراجعة المشروع');
       final task = controller.tasks.single;
-      await controller.addNote(task, '  تفاصيل أولى\nسطر ثان  ');
+      await controller.addNote(
+        task,
+        '  تفاصيل أولى\nسطر ثان  ',
+        title: 'عنوان اختياري',
+      );
       now = now.add(const Duration(minutes: 1));
       await controller.addNote(task, 'ملاحظة أخرى');
       await controller.addNote(task, '   ');
@@ -54,6 +58,10 @@ void main() {
         controller.searchNotes('تفاصيل').single.note.text,
         'تفاصيل أولى\nسطر ثان',
       );
+      expect(
+        controller.searchNotes('عنوان اختياري').single.note.title,
+        'عنوان اختياري',
+      );
       expect(controller.searchNotes('لا يوجد'), isEmpty);
       expect(controller.searchNotes().first.task.id, task.id);
       final backup = await repository.exportBackup();
@@ -62,6 +70,7 @@ void main() {
       await repository.importBackup(backup, now);
       await controller.load();
       expect(controller.searchNotes().length, 2);
+      expect(controller.searchNotes('عنوان اختياري'), hasLength(1));
       await controller.delete(controller.tasks.single);
       expect(controller.searchNotes().first.task.title, 'مراجعة المشروع');
     },
@@ -81,16 +90,49 @@ void main() {
     await tester.tap(find.text('مهمة الملاحظات'));
     await tester.pumpAndSettle();
     expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byIcon(Icons.gps_fixed),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byIcon(Icons.notes_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
       tester.getTopLeft(find.text('إضافة ملاحظة')).dy,
       lessThan(tester.getTopLeft(find.text('تعديل المهمة')).dy),
     );
     await tester.tap(find.text('إضافة ملاحظة'));
     await tester.pumpAndSettle();
     expect(find.byType(NoteComposerScreen), findsOneWidget);
-    expect(find.widgetWithText(TextButton, 'حفظ'), findsNothing);
+    expect(find.text('مهمة مرتبطة'), findsNothing);
+    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    await tester.tap(find.text('مهمة الملاحظات'));
+    await tester.pumpAndSettle();
+    expect(find.text('تعديل المهمة'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(NoteComposerScreen), findsOneWidget);
+    final save = find.widgetWithText(TextButton, 'حفظ');
+    expect(save, findsOneWidget);
+    expect(
+      tester.widget<TextButton>(save).style!.textStyle!.resolve({})!.fontFamily,
+      'Plex Arabic',
+    );
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    expect(find.text('إغلاق دون حفظ'), findsOneWidget);
+    expect(find.text('حذف'), findsNothing);
+    await tester.tapAt(const Offset(10, 100));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'نص بلا عنوان\nمع سطر جديد');
     await tester.pump();
-    await tester.tap(find.text('إغلاق'));
+    await tester.tap(find.text('حفظ'));
     await tester.pumpAndSettle();
     expect(
       controller.searchNotes().single.note.text,
@@ -115,6 +157,15 @@ void main() {
     await tester.enterText(find.byType(TextField), 'مهمة الملاحظات');
     await tester.pumpAndSettle();
     expect(find.text('نص بلا عنوان\nمع سطر جديد'), findsOneWidget);
+    await tester.tap(find.text('نص بلا عنوان\nمع سطر جديد'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مهمة الملاحظات'));
+    await tester.pumpAndSettle();
+    expect(find.text('تعديل المهمة'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إغلاق'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'غير موجود');
     await tester.pumpAndSettle();
     expect(find.text('لا توجد ملاحظات مطابقة'), findsOneWidget);
@@ -203,18 +254,39 @@ void main() {
             .style!
             .foregroundColor!
             .resolve({}),
-        AppColors.muted,
+        AppColors.text,
       );
       expect(find.byTooltip('إغلاق'), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
-      expect(tester.getRect(editor).top, 16);
+      expect(
+        tester.getRect(find.byTooltip('رجوع')).top,
+        greaterThanOrEqualTo(16),
+      );
+      expect(tester.getRect(editor).top, 72);
       final input = tester.widget<TextField>(editor).decoration!;
       expect(input.filled, isFalse);
       expect(input.border, InputBorder.none);
       expect(tester.getRect(menu).left, 18);
+      final linkedTask = find
+          .ancestor(
+            of: find.text('المهمة المرتبطة').last,
+            matching: find.byType(Material),
+          )
+          .first;
       expect(
-        tester.getRect(closeButton).right,
-        lessThan(tester.getRect(find.text('المهمة المرتبطة').last).left),
+        tester.getRect(linkedTask).left,
+        greaterThan(tester.getRect(closeButton).left),
+      );
+      expect(
+        tester.widget<Text>(find.text('المهمة المرتبطة').last).style!.color,
+        AppColors.muted,
+      );
+      expect(tester.getRect(menu).width, 36);
+      expect(tester.getRect(closeButton).left, tester.getRect(menu).right);
+      expect(tester.getRect(closeButton).width, inInclusiveRange(48, 100));
+      expect(
+        tester.getRect(find.text('المهمة المرتبطة').last).bottom,
+        lessThan(tester.getRect(find.text(date)).top),
       );
       expect(
         tester.getRect(find.text('المهمة المرتبطة').last).top -
@@ -223,10 +295,7 @@ void main() {
       );
       expect(
         tester.getRect(closeButton).center.dy,
-        inInclusiveRange(
-          tester.getRect(find.text('المهمة المرتبطة').last).top,
-          tester.getRect(find.text(date)).bottom,
-        ),
+        tester.getRect(find.text(date)).center.dy,
       );
       expect(
         tester
@@ -235,7 +304,7 @@ void main() {
             .textStyle!
             .resolve({})!
             .fontSize,
-        12,
+        14,
       );
       expect(
         tester.widget<TextField>(find.byType(TextField).last).controller!.text,
@@ -437,4 +506,130 @@ void main() {
     expect(find.byType(NoteComposerScreen), findsNothing);
     expect(repository.tasks.single.notes.single.text, 'تعديل جديد');
   });
+  for (final direction in [TextDirection.rtl, TextDirection.ltr]) {
+    testWidgets('iPhone edge swipe saves before closing in $direction', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final repository = _DelayedNoteRepository();
+      final controller = TaskController(repository);
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.create('مهمة الآيفون');
+      final task = controller.tasks.single;
+      await controller.addNote(task, 'نص محفوظ');
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigator,
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          builder: (_, child) =>
+              Directionality(textDirection: direction, child: child!),
+          home: const Scaffold(),
+        ),
+      );
+      void open() => navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => NoteComposerScreen(
+            controller: controller,
+            task: task,
+            note: controller.searchNotes().single.note,
+          ),
+        ),
+      );
+      open();
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'محفوظ بالسحب');
+      final edge = Offset(direction == TextDirection.rtl ? 389 : 1, 200);
+      final sign = direction == TextDirection.rtl ? -1.0 : 1.0;
+      await tester.timedDragFrom(
+        edge,
+        Offset(sign * 20, 0),
+        const Duration(milliseconds: 500),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteComposerScreen), findsOneWidget);
+      expect(repository.tasks.single.notes.single.text, 'نص محفوظ');
+      repository.gate = Completer<void>();
+      await tester.timedDragFrom(
+        edge,
+        Offset(sign * 180, 0),
+        const Duration(milliseconds: 400),
+      );
+      await tester.pump();
+      expect(find.byType(NoteComposerScreen), findsOneWidget);
+      expect(repository.tasks.single.notes.single.text, 'نص محفوظ');
+      repository.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteComposerScreen), findsNothing);
+      expect(repository.tasks.single.notes.single.text, 'محفوظ بالسحب');
+      repository.gate = null;
+      open();
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'محفوظ بسهم الرجوع');
+      await tester.tap(find.byTooltip('رجوع'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NoteComposerScreen), findsNothing);
+      expect(repository.tasks.single.notes.single.text, 'محفوظ بسهم الرجوع');
+    });
+  }
+  testWidgets(
+    'optional bold title can be added from header, searched and removed',
+    (tester) async {
+      final controller = TaskController(MemoryRepository());
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.create('مهمة العنوان');
+      final task = controller.tasks.single;
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(navigatorKey: navigator, home: const Scaffold()),
+      );
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              NoteComposerScreen(controller: controller, task: task),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'محتوى الملاحظة');
+      await tester.tap(find.byKey(const ValueKey('note-title-area')));
+      await tester.pumpAndSettle();
+      final title = find.byKey(const ValueKey('note-title'));
+      expect(
+        tester.widget<TextField>(title).style!.fontWeight,
+        FontWeight.w700,
+      );
+      await tester.enterText(title, 'عنوان جديد');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text('عنوان جديد'), findsOneWidget);
+      await tester.tap(find.text('حفظ'));
+      await tester.pumpAndSettle();
+      expect(
+        controller.searchNotes('عنوان جديد').single.note.text,
+        'محتوى الملاحظة',
+      );
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => NoteComposerScreen(
+            controller: controller,
+            task: task,
+            note: controller.searchNotes().single.note,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('عنوان جديد'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('note-title-area')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('note-title')), '');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(controller.searchNotes().single.note.title, isEmpty);
+      expect(controller.searchNotes().single.note.text, 'محتوى الملاحظة');
+    },
+  );
 }
