@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../core/arabic_dates.dart';
@@ -899,12 +900,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       final scroll = _scrollController.hasClients
                           ? (_scrollController.offset / 48).clamp(0.0, 1.0)
                           : 0.0;
-                      return ColoredBox(
-                        key: const ValueKey('home-header'),
-                        color: AppColors.background.withValues(
-                          alpha: 1 - .22 * scroll,
+                      // Blur only the backdrop inside the fixed header; its
+                      // logo, date and controls stay sharp.
+                      return ClipRect(
+                        child: BackdropFilter(
+                          enabled: scroll > 0,
+                          filter: ui.ImageFilter.blur(
+                            sigmaX: 10 * scroll,
+                            sigmaY: 10 * scroll,
+                          ),
+                          child: ColoredBox(
+                            key: const ValueKey('home-header'),
+                            color: AppColors.background.withValues(
+                              alpha: 1 - .58 * scroll,
+                            ),
+                            child: child,
+                          ),
                         ),
-                        child: child,
                       );
                     },
                   ),

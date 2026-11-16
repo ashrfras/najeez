@@ -133,6 +133,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final header = find.byKey(const ValueKey('home-header'));
+      final glass = find.ancestor(
+        of: header,
+        matching: find.byType(BackdropFilter),
+      );
       final settings = find.byTooltip('الإعدادات');
       final logo = find.byType(Image);
       final headerRect = tester.getRect(header);
@@ -142,6 +146,7 @@ void main() {
       expect(headerRect.top, 0);
       expect(settingsRect.top, topInset + 4);
       expect(tester.widget<ColoredBox>(header).color.a, 1);
+      expect(tester.widget<BackdropFilter>(glass).enabled, isFalse);
 
       final scroll = tester
           .widget<CustomScrollView>(find.byType(CustomScrollView))
@@ -151,7 +156,12 @@ void main() {
       expect(tester.getRect(header), headerRect);
       expect(tester.getRect(logo), logoRect);
       expect(tester.getRect(settings), settingsRect);
-      expect(tester.widget<ColoredBox>(header).color.a, closeTo(.78, .01));
+      expect(tester.widget<ColoredBox>(header).color.a, closeTo(.42, .01));
+      expect(tester.widget<BackdropFilter>(glass).enabled, isTrue);
+      expect(
+        find.ancestor(of: glass, matching: find.byType(ClipRect)),
+        findsOneWidget,
+      );
       expect(
         tester.getRect(find.byType(TaskCaptureBar)).top,
         closeTo(captureRect.top - 100, .01),
@@ -164,6 +174,7 @@ void main() {
       scroll.jumpTo(0);
       await tester.pump();
       expect(tester.widget<ColoredBox>(header).color.a, 1);
+      expect(tester.widget<BackdropFilter>(glass).enabled, isFalse);
       scroll.jumpTo(100);
       await tester.pump();
       await tester.tap(settings);
