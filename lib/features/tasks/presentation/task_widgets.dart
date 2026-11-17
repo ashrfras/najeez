@@ -441,7 +441,8 @@ class TaskSection extends StatelessWidget {
       endIndent: 13,
       color: AppColors.border,
     );
-    // Reserve two title lines per row, including the user's text scaling.
+    // Size only the viewport from a normal row, including text scaling.
+    // Rows keep their natural height, even when their titles wrap.
     final lineMetrics = TextPainter(
       text: TextSpan(
         text: 'مهمة',
@@ -450,7 +451,8 @@ class TaskSection extends StatelessWidget {
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    final rowExtent = math.max(23.0, lineMetrics.height * 2) + 21;
+    final rowExtent =
+        math.max(denseRows ? 18.0 : 23.0, lineMetrics.height) + 21;
     lineMetrics.dispose();
     return Container(
       decoration: panel(),
@@ -512,7 +514,6 @@ class TaskSection extends StatelessWidget {
               child: ListView.builder(
                 primary: false,
                 padding: EdgeInsets.zero,
-                itemExtent: rowExtent,
                 itemCount: tasks.length,
                 findChildIndexCallback: (key) {
                   final index = tasks.indexWhere(
@@ -522,10 +523,7 @@ class TaskSection extends StatelessWidget {
                 },
                 itemBuilder: (context, index) => Column(
                   key: ValueKey(tasks[index].id),
-                  children: [
-                    divider,
-                    Expanded(child: taskRow(index)),
-                  ],
+                  children: [divider, taskRow(index)],
                 ),
               ),
             )

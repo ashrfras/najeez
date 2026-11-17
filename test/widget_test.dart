@@ -889,11 +889,22 @@ void main() {
       final repository = MemoryRepository();
       final controller = TaskController(repository);
       await controller.load();
-      for (var i = 1; i <= 7; i++) {
+      for (var i = 1; i <= 5; i++) {
         await controller.create('مهمة $i');
       }
       await tester.pumpWidget(
         BaqiApp(controller: controller, splashDuration: Duration.zero),
+      );
+      final originalRowHeight = tester
+          .getSize(find.widgetWithText(TaskRow, 'مهمة 5'))
+          .height;
+      for (var i = 6; i <= 7; i++) {
+        await controller.create('مهمة $i');
+      }
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSize(find.widgetWithText(TaskRow, 'مهمة 5')).height,
+        originalRowHeight,
       );
       final todaySection = find.widgetWithText(TaskSection, 'اليوم');
       final taskList = find.descendant(
