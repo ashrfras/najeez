@@ -135,8 +135,9 @@ class BackupController extends ChangeNotifier {
     }
     applyingRestore = true;
     notifyListeners();
-    await repository.importBackup(copy.data, copy.date);
-    await tasks.load();
+    await tasks.restoreData(
+      () => repository.importBackup(copy.data, copy.date),
+    );
     await loadSettings();
     _message('تمت استعادة النسخة الاحتياطية.');
   }

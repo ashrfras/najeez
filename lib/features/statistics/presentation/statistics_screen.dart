@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../review/review_screen.dart';
+import '../../review/review_identity.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
-import '../../../core/status_bar_fade.dart';
+import '../../../core/activity_page.dart';
 import '../../tasks/domain/task.dart';
 import '../../tasks/domain/task_controller.dart';
 import '../../tasks/presentation/task_widgets.dart';
@@ -77,50 +79,34 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: StatusBarFade(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              18 + MediaQuery.paddingOf(context).top,
-              16,
-              28 + MediaQuery.paddingOf(context).bottom,
+  Widget build(BuildContext context) => ActivityPage(
+    content: (padding) => ListView.builder(
+      padding: padding,
+      itemCount: _visibleDays + 1 + (_visibleDays < _availableDays ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == 0) return _header();
+        if (index == _visibleDays + 1) {
+          return Container(
+            decoration: panel(),
+            child: TextButton.icon(
+              onPressed: () => setState(() {
+                _visibleDays = (_visibleDays + 7).clamp(7, _availableDays);
+              }),
+              icon: const Icon(Icons.keyboard_arrow_down),
+              label: const Text('عرض أيام سابقة'),
             ),
-            itemCount:
-                _visibleDays + 1 + (_visibleDays < _availableDays ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == 0) return _header();
-              if (index == _visibleDays + 1) {
-                return Container(
-                  decoration: panel(),
-                  child: TextButton.icon(
-                    onPressed: () => setState(() {
-                      _visibleDays = (_visibleDays + 7).clamp(
-                        7,
-                        _availableDays,
-                      );
-                    }),
-                    icon: const Icon(Icons.keyboard_arrow_down),
-                    label: const Text('عرض أيام سابقة'),
-                  ),
-                );
-              }
-              final date = DateTime(
-                _today.year,
-                _today.month,
-                _today.day - index + 1,
-              );
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _dayCard(_statistics.day(date)),
-              );
-            },
-          ),
-        ),
-      ),
+          );
+        }
+        final date = DateTime(
+          _today.year,
+          _today.month,
+          _today.day - index + 1,
+        );
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _dayCard(_statistics.day(date)),
+        );
+      },
     ),
   );
 
@@ -129,16 +115,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-            ),
-            const SizedBox(width: 5),
-            const Flexible(child: Text('الإحصاءات', style: AppType.title)),
-          ],
-        ),
+        const ActivityPageHeader('الإحصاءات'),
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(18),
@@ -187,6 +164,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
         ),
         const SizedBox(height: 20),
+        ReviewEntryCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ReviewScreen(controller: widget.controller),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
         const Text('سجل الأيام', style: AppType.section),
         const SizedBox(height: 12),
       ],

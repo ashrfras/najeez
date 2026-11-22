@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import '../../review/daily_review.dart';
 import '../../../core/design.dart';
 import 'task.dart';
 import 'task_dates.dart';
@@ -211,9 +213,80 @@ class TaskController extends ChangeNotifier {
       .toSet()
       .toList();
 
-  Future<void> load() => _serializeRepeat(() async {
+  DateTime? _firstUse;
+  DateTime? get reviewUnlockAt =>
+      _firstUse?.toUtc().add(const Duration(days: 7));
+  bool get reviewAgeEligible =>
+      reviewUnlockAt != null && !now.isBefore(reviewUnlockAt!);
+  SavedDailyReview? _dailyReview;
+  SavedDailyReview? get dailyReview => _dailyReview;
+  bool _reviewBusy = false;
+  bool get reviewBusy => _reviewBusy;
+  int _reviewEpoch = 0;
+
+  Future<ReviewSnapshot> captureReview() {
+    final input = (
+      tasks: _tasks,
+      logicalDay: logicalDay,
+      firstUse: _firstUse ?? now,
+      now: now,
+      timeTrackingEnabled: timeTrackingEnabled,
+    );
+    return compute(_captureReview, input);
+  }
+
+  Future<void> generateReview(
+    Future<String> Function(ReviewSnapshot) generate,
+  ) async {
+    if (_reviewBusy || !reviewAgeEligible) return;
+    final epoch = _reviewEpoch;
+    _reviewBusy = true;
+    notifyListeners();
     try {
+      final snapshot = await captureReview();
+      if (epoch != _reviewEpoch || !snapshot.changedSince(_dailyReview)) return;
+      final text = (await generate(snapshot)).trim();
+      if (text.isEmpty) throw const FormatException('Empty review');
+      await _serializeRepeat(() async {
+        if (epoch != _reviewEpoch || snapshot.day != logicalDay.dayOf(now)) {
+          return;
+        }
+        final review = SavedDailyReview(
+          day: snapshot.day,
+          asOf: snapshot.asOf,
+          generatedAt: now,
+          signature: snapshot.signature,
+          text: text,
+        );
+        await _repository.saveDailyReview(review);
+        _dailyReview = review;
+      });
+    } finally {
+      _reviewBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> load() => _serializeRepeat(_load);
+
+  Future<void> restoreData(Future<void> Function() restore) =>
+      _serializeRepeat(() async {
+        _reviewEpoch++;
+        await restore();
+        await _load();
+      });
+
+  Future<void> _load() async {
+    try {
+      _reviewEpoch++;
       _tasks = await _repository.getTasks();
+      // Older installations have no launch marker. Include soft-deleted history.
+      final earliest = _tasks.fold(
+        now,
+        (date, task) => task.createdAt.isBefore(date) ? task.createdAt : date,
+      );
+      _firstUse = await _repository.ensureFirstUse(earliest);
+      _dailyReview = await _repository.getDailyReview();
       _repeats = await _repository.getDailyRepeats();
       _categoryColors = await _repository.getCategoryColors();
       _logicalDay = LogicalDay(await _repository.getLogicalDayStartMinutes());
@@ -231,7 +304,7 @@ class TaskController extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
-  });
+  }
 
   Future<void> setLogicalDayStart(int minutes) async {
     if (minutes < 0 || minutes >= 24 * 60) {
@@ -251,7 +324,11 @@ class TaskController extends ChangeNotifier {
       });
 
   Future<void> reset() => _serializeRepeat(() async {
-    await _repository.reset();
+    final timestamp = now;
+    await _repository.resetForNewUse(timestamp);
+    _reviewEpoch++;
+    _dailyReview = null;
+    _firstUse = timestamp;
     _tasks = [];
     _focusSession = null;
     _repeats = [];
@@ -568,3 +645,20 @@ class TaskController extends ChangeNotifier {
     }
   });
 }
+
+ReviewSnapshot _captureReview(
+  ({
+    List<Task> tasks,
+    LogicalDay logicalDay,
+    DateTime firstUse,
+    DateTime now,
+    bool timeTrackingEnabled,
+  })
+  input,
+) => ReviewSnapshot.capture(
+  tasks: input.tasks,
+  logicalDay: input.logicalDay,
+  firstUse: input.firstUse,
+  now: input.now,
+  timeTrackingEnabled: input.timeTrackingEnabled,
+);

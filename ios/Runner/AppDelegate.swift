@@ -4,6 +4,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let cloudBackup = CloudBackupBridge()
+  private let dailyReview = DailyReviewBridge()
   private let focusActivity = FocusActivityBridge()
 
   override func application(
@@ -19,6 +20,11 @@ import UIKit
     let channel = FlutterMethodChannel(name: "ma.raqmain.najeez/icloud", binaryMessenger: registrar.messenger())
     channel.setMethodCallHandler { [cloudBackup] call, result in
       cloudBackup.handle(call, result: result)
+    }
+    let reviewChannel = FlutterMethodChannel(
+      name: "ma.raqmain.najeez/daily_review", binaryMessenger: registrar.messenger())
+    reviewChannel.setMethodCallHandler { [dailyReview] call, result in
+      dailyReview.handle(call, result: result)
     }
     let focusChannel = FlutterMethodChannel(
       name: "ma.raqmain.najeez/focus_activity", binaryMessenger: registrar.messenger())
