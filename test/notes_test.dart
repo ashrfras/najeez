@@ -203,6 +203,73 @@ void main() {
   );
 
   testWidgets(
+    'notes scroll through the bottom fade with a fixed header and search',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 480);
+      tester.view.padding = const FakeViewPadding(top: 47, bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(top: 47, bottom: 34);
+      addTearDown(tester.view.reset);
+      final controller = TaskController(MemoryRepository());
+      addTearDown(controller.dispose);
+      await controller.load();
+      await controller.create('مهمة');
+      for (var i = 0; i < 20; i++) {
+        await controller.addNote(controller.tasks.single, 'ملاحظة $i');
+      }
+      await tester.pumpWidget(
+        MaterialApp(home: NotesScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      final scroll = find.byType(SingleChildScrollView);
+      final title = find.text('جميع الملاحظات');
+      final search = find.byType(TextField);
+      final titleRect = tester.getRect(title);
+      final searchRect = tester.getRect(search);
+      expect(titleRect.top, greaterThan(47));
+      expect(tester.getRect(scroll).top, greaterThan(searchRect.bottom));
+      expect(tester.getRect(scroll).bottom, 480);
+
+      final bottomFade = find.byWidgetPredicate((widget) {
+        if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
+          return false;
+        }
+        final gradient = (widget.decoration as BoxDecoration).gradient;
+        return gradient is LinearGradient &&
+            gradient.begin == Alignment.topCenter &&
+            gradient.end == Alignment.bottomCenter &&
+            gradient.colors.first.a == 0 &&
+            gradient.colors.last.a == 1;
+      });
+      expect(tester.getRect(bottomFade).bottom, 480);
+      final position = Scrollable.of(
+        tester.element(find.byType(NoteCard).first),
+      ).position;
+      await tester.dragFrom(
+        tester.getCenter(bottomFade),
+        const Offset(0, -100),
+      );
+      await tester.pumpAndSettle();
+      expect(position.pixels, greaterThan(0));
+      expect(tester.getRect(title), titleRect);
+      expect(tester.getRect(search), searchRect);
+
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      final lastCard = find
+          .byType(NoteCard)
+          .hitTestable()
+          .evaluate()
+          .map(
+            (element) => tester.getRect(find.byWidget(element.widget)).bottom,
+          )
+          .reduce((a, b) => a > b ? a : b);
+      expect(lastCard, closeTo(480 - 34 - 28 - 10, .01));
+    },
+  );
+
+  testWidgets(
     'all notes keep cards, with editing and confirmed deletion inside the note',
     (tester) async {
       tester.view.devicePixelRatio = 1;

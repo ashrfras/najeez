@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/activity_page.dart';
 import '../../../core/design.dart';
 import '../../../core/status_bar_fade.dart';
 import '../../tasks/domain/task_controller.dart';
@@ -55,23 +56,7 @@ class SettingsScreen extends StatelessWidget {
                   28 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                      ),
-                      const SizedBox(width: 5),
-                      const Flexible(
-                        child: Text(
-                          'الإعدادات',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppType.title,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const ActivityPageHeader('الإعدادات'),
                   const SizedBox(height: 28),
                   _SettingsGroup(
                     title: 'إعدادات التطبيق',

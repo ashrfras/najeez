@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/activity_page.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
 import '../domain/task.dart';
@@ -863,81 +864,93 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                    const SizedBox(width: 5),
-                    const Text('جميع الملاحظات', style: AppType.section),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: panel(color: AppColors.surfaceRaised),
-                  child: TextField(
-                    controller: _search,
-                    onChanged: (_) => setState(() {}),
-                    style: AppType.body,
-                    decoration: InputDecoration(
-                      hintText: 'بحث في الملاحظات',
-                      hintStyle: AppType.caption,
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: AppColors.muted,
+  Widget build(BuildContext context) => ActivityPage(
+    content: (padding) => Padding(
+      padding: padding.copyWith(bottom: 0),
+      child: Column(
+        children: [
+          const ActivityPageHeader('جميع الملاحظات'),
+          const SizedBox(height: 12),
+          Container(
+            decoration: panel(color: AppColors.surfaceRaised),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              style: AppType.body,
+              decoration: InputDecoration(
+                hintText: 'بحث في الملاحظات',
+                hintStyle: AppType.caption,
+                prefixIcon: const Icon(Icons.search, color: AppColors.muted),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'مسح البحث',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(_search.clear),
                       ),
-                      suffixIcon: _search.text.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: 'مسح البحث',
-                              icon: const Icon(Icons.close),
-                              onPressed: () => setState(_search.clear),
-                            ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: AnimatedBuilder(
-                    animation: widget.controller,
-                    builder: (context, _) {
-                      final notes = widget.controller.searchNotes(_search.text);
-                      if (notes.isEmpty) {
-                        return Center(
-                          child: Text(
-                            _search.text.trim().isEmpty
-                                ? 'لا توجد ملاحظات بعد'
-                                : 'لا توجد ملاحظات مطابقة',
-                            style: AppType.caption,
-                          ),
-                        );
-                      }
-                      return SingleChildScrollView(
-                        child: _NotesGrid(
-                          onTaskActions: widget.onTaskActions,
-                          controller: widget.controller,
-                          notes: notes,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(14),
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: AnimatedBuilder(
+              animation: widget.controller,
+              builder: (context, _) {
+                final notes = widget.controller.searchNotes(_search.text);
+                final endPadding = EdgeInsets.only(bottom: padding.bottom);
+                if (notes.isEmpty) {
+                  return Padding(
+                    padding: endPadding,
+                    child: Center(
+                      child: Text(
+                        _search.text.trim().isEmpty
+                            ? 'لا توجد ملاحظات بعد'
+                            : 'لا توجد ملاحظات مطابقة',
+                        style: AppType.caption,
+                      ),
+                    ),
+                  );
+                }
+                final background = Theme.of(context).scaffoldBackgroundColor;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    SingleChildScrollView(
+                      padding: endPadding,
+                      child: _NotesGrid(
+                        onTaskActions: widget.onTaskActions,
+                        controller: widget.controller,
+                        notes: notes,
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: padding.bottom,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                background.withValues(alpha: 0),
+                                background,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     ),
   );

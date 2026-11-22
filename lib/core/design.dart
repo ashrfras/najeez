@@ -57,6 +57,11 @@ abstract final class AppRadius {
 }
 
 abstract final class AppType {
+  static const pageTitle = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+  );
   static const title = TextStyle(
     fontSize: 29,
     fontWeight: FontWeight.w800,

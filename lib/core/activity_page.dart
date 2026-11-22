@@ -42,7 +42,7 @@ class ActivityPageHeader extends StatelessWidget {
       Expanded(
         child: Semantics(
           header: true,
-          child: Text(title, style: AppType.title),
+          child: Text(title, style: AppType.pageTitle),
         ),
       ),
     ],
