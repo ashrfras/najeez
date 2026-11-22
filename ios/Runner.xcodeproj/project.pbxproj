@@ -23,7 +23,6 @@
 		D25339598C2876F4ECAF80F0 /* FocusActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE008D8560FE983D2284A53 /* FocusActivityWidget.swift */; };
 		DBF11D1AF0EED5E2F0732EA5 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E42E979DD5BFB0C15026D09 /* FocusActivityAttributes.swift */; };
 		FFCF9CB12498C972FE9B2BF1 /* FocusActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */; };
-		1D0A89462CA441BD89D6D984 /* DailyReviewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CD2530665B4D17B4CE588F /* DailyReviewBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,7 +91,6 @@
 		9E42E979DD5BFB0C15026D09 /* FocusActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityAttributes.swift; sourceTree = "<group>"; };
 		C10D00010000000000000002 /* CloudBackupBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupBridge.swift; sourceTree = "<group>"; };
 		C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityBridge.swift; sourceTree = "<group>"; };
-		89CD2530665B4D17B4CE588F /* DailyReviewBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DailyReviewBridge.swift; sourceTree = "<group>"; };
 		CFE008D8560FE983D2284A53 /* FocusActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -201,7 +199,6 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */,
-				89CD2530665B4D17B4CE588F /* DailyReviewBridge.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -400,7 +397,6 @@
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				6A6E03F0CA950B0DBBA8C414 /* FocusActivityAttributes.swift in Sources */,
 				FFCF9CB12498C972FE9B2BF1 /* FocusActivityBridge.swift in Sources */,
-				1D0A89462CA441BD89D6D984 /* DailyReviewBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -4,6 +4,7 @@ import 'package:najeez/core/design.dart';
 import 'package:najeez/core/status_bar_fade.dart';
 import 'package:najeez/features/review/review_identity.dart';
 import 'package:najeez/features/review/review_screen.dart';
+import 'package:najeez/features/review/review_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,6 +16,8 @@ import 'widget_test.dart' show MemoryRepository;
 
 class _Storage extends MemoryRepository {
   SavedDailyReview? saved;
+  @override
+  Future<SavedDailyReview?> getDailyReview() async => saved;
   @override
   Future<void> saveDailyReview(SavedDailyReview review) async => saved = review;
 }
@@ -33,23 +36,31 @@ class _Controller extends TaskController {
   );
 }
 
+class _TestModel implements ReviewModel {
+  int calls = 0;
+  bool ready = true;
+  final output = Completer<String>();
+
+  @override
+  Future<bool> isAvailable(String language) async {
+    expect(language, 'ar');
+    return ready;
+  }
+
+  @override
+  Future<String> generate(ReviewSnapshot snapshot, String language) async {
+    expect(language, 'ar');
+    calls++;
+    if (calls == 1) return output.future;
+    throw StateError('interrupted');
+  }
+}
+
 void main() {
   testWidgets(
-    'statistics opens the reviewer, generates only on tap and retains dated text on failed refresh',
+    'a configured local model runs only on tap and a failed refresh preserves the dated review',
     (tester) async {
-      const channel = MethodChannel('ma.raqmain.najeez/daily_review');
-      final messenger = tester.binding.defaultBinaryMessenger;
-      var calls = 0;
-      var status = 'available';
-      final output = Completer<String>();
-      messenger.setMockMethodCallHandler(channel, (call) async {
-        expect(call.arguments['language'], 'ar');
-        if (call.method == 'availability') return status;
-        calls++;
-        if (calls == 1) return output.future;
-        throw PlatformException(code: 'interrupted');
-      });
-      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      final model = _TestModel();
       var now = DateTime(2026, 10, 1, 10);
       final controller = _Controller(_Storage(), clock: () => now);
       await controller.load();
@@ -58,10 +69,9 @@ void main() {
           locale: const Locale('ar'),
           supportedLocales: const [Locale('ar')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: StatisticsScreen(controller: controller, onActions: (_) {}),
+          home: ReviewScreen(controller: controller, model: model),
         ),
       );
-      await tester.tap(find.text('المراجع الذكي'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -75,11 +85,11 @@ void main() {
       now = DateTime(2026, 10, 9, 10);
       await controller.create('كتابة المسودة');
       await tester.pumpAndSettle();
-      expect(calls, 0);
+      expect(model.calls, 0);
       await tester.tap(find.text('تحليل إنتاجيتي'));
       await tester.pump();
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
-      output.complete('راجعت المسودة هذا الصباح.');
+      model.output.complete('راجعت المسودة هذا الصباح.');
       await tester.pumpAndSettle();
       expect(find.text('مراجعة الجمعة'), findsOneWidget);
       expect(find.text('9 أكتوبر 2026'), findsOneWidget);
@@ -93,25 +103,15 @@ void main() {
       expect(find.text('تحديث المراجعة'), findsNothing);
       await controller.complete(controller.tasks.single);
       await tester.pumpAndSettle();
-      expect(calls, 1);
+      expect(model.calls, 1);
+      model.ready = false;
       await tester.tap(find.text('تحديث المراجعة'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('توقف التحليل'), findsOneWidget);
+      expect(find.textContaining('تعذّر إكمال المراجعة'), findsOneWidget);
       expect(find.text('راجعت المسودة هذا الصباح.'), findsOneWidget);
-      status = 'language';
-      await tester.tap(
-        find.byTooltip(
-          MaterialLocalizations.of(
-            tester.element(find.text('المراجع الذكي')),
-          ).backButtonTooltip,
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('المراجع الذكي'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('لا يدعم لغة واجهة'), findsOneWidget);
+      expect(find.text('النموذج المحلي غير متاح حاليًا.'), findsOneWidget);
       expect(find.text('راجعت المسودة هذا الصباح.'), findsOneWidget);
-      expect(calls, 2);
+      expect(model.calls, 2);
       await tester.pumpWidget(const SizedBox.shrink());
       controller.dispose();
     },
@@ -147,17 +147,6 @@ void main() {
         await controller.create('إعداد العرض');
         clock = date;
         await controller.complete(controller.tasks.single);
-        const channel = MethodChannel('ma.raqmain.najeez/daily_review');
-        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          channel,
-          (call) async => 'available',
-        );
-        addTearDown(
-          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-            channel,
-            null,
-          ),
-        );
         await tester.pumpWidget(
           MaterialApp(
             debugShowCheckedModeBanner: false,
@@ -205,13 +194,26 @@ void main() {
           Theme.of(tester.element(find.byType(ActivityPageHeader))).brightness,
           Brightness.dark,
         );
-        expect(find.text('تحليل خاص على جهازك'), findsOneWidget);
-        await controller.generateReview(
-          (_) async =>
-              'تركّز عملك اليوم على إنهاء مسودة العرض. خصّصت لها جلستين صباحًا، ثم عدت إليها بعد الظهر لإتمام التعديلات.\n\nبقيت مراجعة الميزانية ضمن مهام اليوم. لم يُسجّل لها وقت عمل حتى لحظة إعداد هذه المراجعة.',
+        expect(
+          find.text('توليد مراجعات جديدة غير متاح حاليًا.'),
+          findsOneWidget,
         );
+        expect(find.byType(FilledButton), findsNothing);
+        repo.saved = SavedDailyReview(
+          day: date,
+          asOf: date,
+          generatedAt: date,
+          signature: 'previous',
+          text: 'تركّز عملك اليوم على إنهاء مسودة العرض.',
+        );
+        await controller.load();
         await tester.pumpAndSettle();
         expect(find.text('22 نوفمبر 2026'), findsOneWidget);
+        expect(
+          find.text('تركّز عملك اليوم على إنهاء مسودة العرض.'),
+          findsOneWidget,
+        );
+        expect(find.text('تحديث المراجعة'), findsNothing);
         view.physicalSize = const Size(320, 560);
         tester.platformDispatcher.textScaleFactorTestValue = 1.6;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -221,7 +223,7 @@ void main() {
           const Offset(0, -3000),
         );
         await tester.pumpAndSettle();
-        expect(find.text('تحليل خاص على جهازك').hitTestable(), findsOneWidget);
+        expect(find.text('خصوصية المراجعة').hitTestable(), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         controller.dispose();

@@ -12,8 +12,9 @@ import 'review_model.dart';
 import 'review_identity.dart';
 
 class ReviewScreen extends StatefulWidget {
-  const ReviewScreen({super.key, required this.controller});
+  const ReviewScreen({super.key, required this.controller, this.model});
   final TaskController controller;
+  final ReviewModel? model;
 
   @override
   State<ReviewScreen> createState() => _ReviewScreenState();
@@ -21,9 +22,8 @@ class ReviewScreen extends StatefulWidget {
 
 class _ReviewScreenState extends State<ReviewScreen>
     with WidgetsBindingObserver {
-  final model = ReviewModel();
   late String language;
-  String? status;
+  bool? available;
   String? error;
   Future<ReviewSnapshot>? snapshot;
   Timer? unlockTimer;
@@ -44,19 +44,34 @@ class _ReviewScreenState extends State<ReviewScreen>
   }
 
   Future<void> _checkModel() async {
-    final code = await model.availability(language);
-    if (mounted) setState(() => status = code);
+    final model = widget.model;
+    if (model == null) return;
+    final locale = language;
+    bool ready;
+    try {
+      ready = await model.isAvailable(locale);
+    } catch (_) {
+      ready = false;
+    }
+    if (mounted && model == widget.model && locale == language) {
+      setState(() => available = ready);
+    }
   }
 
   void _refresh() {
     final controller = widget.controller;
     unlockTimer?.cancel();
     final unlock = controller.reviewUnlockAt;
-    if (unlock != null && controller.now.isBefore(unlock)) {
+    if (widget.model != null &&
+        unlock != null &&
+        controller.now.isBefore(unlock)) {
       unlockTimer = Timer(unlock.difference(controller.now), _refresh);
     }
     setState(() {
-      snapshot = controller.reviewAgeEligible && !controller.reviewBusy
+      snapshot =
+          widget.model != null &&
+              controller.reviewAgeEligible &&
+              !controller.reviewBusy
           ? controller.captureReview()
           : null;
     });
@@ -79,18 +94,16 @@ class _ReviewScreenState extends State<ReviewScreen>
   }
 
   Future<void> _generate() async {
+    final model = widget.model;
+    if (model == null || available != true) return;
     setState(() => error = null);
     try {
       await widget.controller.generateReview(
         (data) => model.generate(data, language),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(
-        () => error = ReviewModel.message(
-          e is PlatformException ? e.code : 'failed',
-        ),
-      );
+      setState(() => error = 'تعذّر إكمال المراجعة وحفظها. حاول مرة أخرى.');
       await _checkModel();
     }
   }
@@ -152,6 +165,12 @@ class _ReviewScreenState extends State<ReviewScreen>
   Widget _actions(BuildContext context, AsyncSnapshot<ReviewSnapshot> result) {
     final controller = widget.controller;
     final saved = controller.dailyReview;
+    if (widget.model == null) {
+      return const _Notice(
+        icon: Icons.info_outline_rounded,
+        text: 'توليد مراجعات جديدة غير متاح حاليًا.',
+      );
+    }
     final ready = result.connectionState == ConnectionState.done;
     final data = result.data;
     final eligible = ready && data != null && data.changedSince(saved);
@@ -164,10 +183,10 @@ class _ReviewScreenState extends State<ReviewScreen>
             text:
                 'تتاح أول مراجعة بعد مرور سبعة أيام كاملة على بدء استخدام نجيز.',
           ),
-        if (status != null && status != 'available')
-          _Notice(
+        if (available == false)
+          const _Notice(
             icon: Icons.memory_rounded,
-            text: ReviewModel.message(status!),
+            text: 'النموذج المحلي غير متاح حاليًا.',
           ),
         if (ready && data != null && !data.hasActivity)
           const _Notice(
@@ -206,7 +225,7 @@ class _ReviewScreenState extends State<ReviewScreen>
                   borderRadius: BorderRadius.circular(AppRadius.control),
                 ),
               ),
-              onPressed: eligible && status == 'available' ? _generate : null,
+              onPressed: eligible && available == true ? _generate : null,
               child: Text(
                 saved == null ? 'تحليل إنتاجيتي' : 'تحديث المراجعة',
                 style: AppType.body.copyWith(fontWeight: FontWeight.bold),
@@ -214,9 +233,7 @@ class _ReviewScreenState extends State<ReviewScreen>
             ),
           ),
         ],
-        if (status == 'not_ready' ||
-            status == 'unavailable' ||
-            status == 'disabled')
+        if (available == false)
           TextButton(
             onPressed: _checkModel,
             child: const Text('التحقق من جاهزية النموذج'),
@@ -503,7 +520,7 @@ class _PrivacyNote extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'تحليل خاص على جهازك',
+                    'خصوصية المراجعة',
                     style: AppType.body.copyWith(
                       color: AppColors.text,
                       fontWeight: FontWeight.w700,
@@ -511,7 +528,7 @@ class _PrivacyNote extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'تعمل نماذج Apple محليًا على جهازك. لا تُرسل بيانات نشاطك إلى خوادم لإجراء التحليل.',
+                    'تُحفظ المراجعة على جهازك. لا تُرسل بيانات نشاطك إلى خوادم لإجراء التحليل.',
                     style: AppType.caption.copyWith(
                       color: AppColors.muted,
                       height: 1.65,
