@@ -19,8 +19,6 @@ class _Storage extends MemoryRepository {
   @override
   Future<SavedDailyReview?> getDailyReview() async => saved;
   @override
-  Future<void> clearDailyReview() async => saved = null;
-  @override
   Future<void> saveDailyReview(SavedDailyReview review) async => saved = review;
 }
 
@@ -342,22 +340,9 @@ void main() {
         expect(find.text('خصوصية المراجعة').hitTestable(), findsOneWidget);
         changes.success({...state, 'phase': 'ready', 'installed': 1282439584});
         await tester.pumpAndSettle();
-        final commandsBeforeReset = List.of(commands);
-        await tester.ensureVisible(find.text('تصفير المراجعة للاختبار'));
-        await tester.tap(find.text('تصفير المراجعة للاختبار'));
-        await tester.pumpAndSettle();
-        expect(repo.saved, isNull);
-        expect(find.text('مراجعة يومك'), findsOneWidget);
-        expect(commands, commandsBeforeReset);
+        expect(find.text('تصفير المراجعة للاختبار'), findsNothing);
+        expect(repo.saved, isNotNull);
         expect(find.text('مثبّت وجاهز للاستخدام'), findsOneWidget);
-        expect(
-          tester
-              .widget<FilledButton>(
-                find.widgetWithText(FilledButton, 'تحليل إنتاجيتي'),
-              )
-              .onPressed,
-          isNotNull,
-        );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         controller.dispose();

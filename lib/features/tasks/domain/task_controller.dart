@@ -280,13 +280,6 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  Future<void> resetReviewForTesting() => _serializeRepeat(() async {
-    _reviewEpoch++;
-    await _repository.clearDailyReview();
-    _dailyReview = null;
-    notifyListeners();
-  });
-
   Future<void> load() => _serializeRepeat(_load);
 
   Future<void> restoreData(Future<void> Function() restore) =>

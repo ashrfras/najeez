@@ -25,8 +25,7 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     });
   }
 
-  // Wording is selected by Qwen from broad work types. Titles are evidence
-  // for that decision and are never substituted into the displayed review.
+  // The activity supplies a broad description and the matching practical tip.
   final subjects = <Map<String, String>>[];
   int subject(Map row) {
     final item = {
@@ -52,6 +51,28 @@ String qwenEvidence(ReviewSnapshot snapshot) {
 
   String step(Map row) => '{step${subject(row)}}';
 
+  final topicChoices = <List<String>>[];
+  final mentioned = <int>{};
+  String? taskReference(Map row, {bool includeProject = true}) {
+    final id = subject(row);
+    if (mentioned.contains(id)) return null;
+    final project = subjects[id]['project']!;
+    final topics = reviewTaskTopics(subjects[id]['title']!, project: project);
+    if (topics.isEmpty) return null;
+    mentioned.add(id);
+    final String topic;
+    if (topics.length == 1) {
+      topic = topics.single;
+    } else {
+      topic = '{topic${topicChoices.length}}';
+      topicChoices.add(topics);
+    }
+    final location = includeProject && project.isNotEmpty
+        ? ' ضمن مشروع «$project»'
+        : '';
+    return 'المهمة التي تخصّ $topic$location';
+  }
+
   if (completions.isNotEmpty) {
     final older =
         completions.where((t) => t['created'] != data['logicalDay']).toList()
@@ -63,8 +84,11 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     final since = reviewRelativeDay(
       reviewDaysAgo(work['created'] as String, snapshot.day),
     );
+    final reference = taskReference(work);
     paragraph(
-      older.isNotEmpty
+      reference != null
+          ? 'أنهيت اليوم $reference${older.isEmpty ? '.' : '، بعد أن خطّطت لها $since.'}'
+          : older.isNotEmpty
           ? 'أنهيت اليوم خطوة${inArea(work)} كنت قد خطّطت لها $since.'
           : 'حوّلت اليوم ما خطّطت له${inArea(work)} إلى عمل مكتمل.',
       [
@@ -80,11 +104,13 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     final minutes = top['minutes'] as int;
     final closedTime = data['focusOnCompletedToday'] as int;
     final openTime = data['focusOnOpenTasks'] as int;
+    final focusWork =
+        (completions.isEmpty ? taskReference(top) : null) ?? area(top);
     final opening = minutes == focus
-        ? 'منحت ${area(top)} ${reviewDuration(focus)} من التركيز اليوم.'
+        ? 'منحت $focusWork ${reviewDuration(focus)} من التركيز اليوم.'
         : minutes * 3 >= focus * 2
-        ? 'كان النصيب الأكبر من تركيزك اليوم في ${area(top)}، حيث قضيت ${reviewDuration(minutes)} من أصل ${reviewDuration(focus)}.'
-        : 'وزّعت ${reviewDuration(focus)} من التركيز بين أكثر من مهمة اليوم، وكان من بينها عمل في ${area(top)}.';
+        ? 'كان النصيب الأكبر من تركيزك اليوم في $focusWork، حيث قضيت ${reviewDuration(minutes)} من أصل ${reviewDuration(focus)}.'
+        : 'وزّعت ${reviewDuration(focus)} من التركيز بين أكثر من مهمة اليوم، وكان من بينها عمل في $focusWork.';
     paragraph(opening, [
       if (openTime > 0 && closedTime > 0)
         if (closedTime * 3 >= focus * 2)
@@ -136,10 +162,13 @@ String qwenEvidence(ReviewSnapshot snapshot) {
   }
   if (manual > 0 && focus == 0) {
     final event = events.where((e) => e['event'] == 'manual').firstOrNull;
+    final manualWork = event == null
+        ? null
+        : (completions.isEmpty ? taskReference(event) : null) ?? area(event);
     progress.add(
       event == null
           ? 'أضفت ${reviewDuration(manual)} من العمل يدويًا اليوم.'
-          : 'تظهر متابعتك في الوقت الذي أضفته يدويًا إلى ${area(event)}، ومنه ${reviewDuration(event['minutes'] as int)}.',
+          : 'تظهر متابعتك في الوقت الذي أضفته يدويًا إلى $manualWork، ومنه ${reviewDuration(event['minutes'] as int)}.',
     );
   }
   if (progress.isNotEmpty) paragraph(progress.first, progress.skip(1));
@@ -172,15 +201,20 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     );
   }
   if (next != null) {
-    final destination = area(next);
+    final previousWork = next['previousProjectWork'] as String?;
+    final mentionHistory = quiet && previousWork != null && next['tag'] != null;
+    final reference = taskReference(next, includeProject: !mentionHistory);
+    final destination = reference ?? area(next);
     final String opening;
     final note = next['latestNoteToday'] as String?;
     if (next['listNow'] == 'tomorrow') {
-      opening =
-          'لديك عمل مخطّط للغد${inArea(next)}. إن أحببت أن تيسّر بدايته، يكفي اليوم أن تجهّز أول ما ستحتاج إليه.';
+      opening = reference == null
+          ? 'لديك عمل مخطّط للغد${inArea(next)}. إن أحببت أن تيسّر بدايته، يكفي اليوم أن تجهّز أول ما ستحتاج إليه.'
+          : 'من بين ما خطّطت له للغد $reference. إن أحببت، يمكنك اليوم تجهيز ما ستحتاج إليه عند البدء.';
     } else if (next['listNow'] == 'later') {
-      opening =
-          'لديك عمل احتفظت به لوقت لاحق${inArea(next)}. إن أحببت، حدّد الآن كيف ستبدأ واترك التنفيذ للوقت الذي يناسبك.';
+      opening = reference == null
+          ? 'لديك عمل احتفظت به لوقت لاحق${inArea(next)}. إن أحببت، حدّد الآن كيف ستبدأ واترك التنفيذ للوقت الذي يناسبك.'
+          : 'احتفظت لوقت لاحق بخطوة يمكنك التمهيد لها، وهي $reference. كيف تحبّ أن تبدأها حين يحين وقتها؟';
     } else if (noted != null) {
       final quotable =
           note != null &&
@@ -192,19 +226,21 @@ String qwenEvidence(ReviewSnapshot snapshot) {
           ? 'عندما تعود إلى $destination، يمكنك البناء على ملاحظتك «$note».'
           : 'لديك نقطة جاهزة للعودة إلى $destination. افتح آخر ملاحظة كتبتها اليوم واختر منها ما تودّ متابعته.';
     } else if (pinned != null) {
-      opening =
-          'اخترت تثبيت عمل${inArea(next)} ضمن قائمة اليوم. إذا كان ما يزال الأهم بالنسبة إليك، فابدأ منه.';
+      opening = reference == null
+          ? 'اخترت تثبيت عمل${inArea(next)} ضمن قائمة اليوم. إذا كان ما يزال الأهم بالنسبة إليك، فابدأ منه.'
+          : 'ثبّتّ $reference في قائمة اليوم. إذا كانت لا تزال أولويتك، فابدأ بها.';
     } else if (sameProject != null && next['tag'] == sameProject['tag']) {
-      opening =
-          'ما زالت أمامك خطوة في $destination. إن رغبت في مواصلة ما أنجزته فيه اليوم، يمكنك البناء عليه ما دامت تفاصيله حاضرة.';
+      opening = reference == null
+          ? 'ما زالت أمامك خطوة في $destination. إن رغبت في مواصلة ما أنجزته فيه اليوم، يمكنك البناء عليه ما دامت تفاصيله حاضرة.'
+          : 'إذا رغبت في متابعة العمل على المشروع نفسه، يمكنك الانتقال إلى $reference ما دامت التفاصيل حاضرة.';
     } else {
-      opening =
-          'من الخيارات المتاحة في قائمة اليوم أن تبدأ بخطوة واحدة${inArea(next)}.';
+      opening = reference == null
+          ? 'من الخيارات المتاحة في قائمة اليوم أن تبدأ بخطوة واحدة${inArea(next)}.'
+          : 'من الخيارات المتاحة في قائمة اليوم أن تختار $reference.';
     }
-    final previousWork = next['previousProjectWork'] as String?;
-    if (quiet && previousWork != null && next['tag'] != null) {
+    if (mentionHistory) {
       final when = reviewRelativeDay(reviewDaysAgo(previousWork, snapshot.day));
-      paragraph('كنت تعمل على $destination $when. $opening', [step(next)]);
+      paragraph('كنت تعمل على ${area(next)} $when. $opening', [step(next)]);
     } else {
       paragraph(opening, [step(next)]);
     }
@@ -245,6 +281,7 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     'أمثلة من الأيام السابقة': rows('historicalExamples').take(3).toList(),
     'أعمال منتظرة': [...pending.take(2), ...upcoming.take(3)],
     'subjects': subjects,
+    'موضوعات المهام': topicChoices,
     'sections': sections,
   });
 }

@@ -29,9 +29,5 @@ abstract class TaskRepository {
     throw UnsupportedError('Daily review storage unavailable');
   }
 
-  Future<void> clearDailyReview() async {
-    throw UnsupportedError('Daily review storage unavailable');
-  }
-
   Future<void> close();
 }

@@ -13,12 +13,6 @@ import 'review_identity.dart';
 import 'qwen_review_model.dart';
 import 'model_management.dart';
 
-// Visible during reviewer trials, including release builds on a test iPhone.
-const _showReviewReset = bool.fromEnvironment(
-  'SHOW_REVIEW_TEST_RESET',
-  defaultValue: true,
-);
-
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key, required this.controller, this.model});
   final TaskController controller;
@@ -289,22 +283,6 @@ class _ReviewScreenState extends State<ReviewScreen>
                               child: const Text('إعادة قراءة حالة النموذج'),
                             ),
                         ],
-                        if (_showReviewReset && saved != null)
-                          Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: TextButton.icon(
-                              onPressed: controller.reviewBusy || changingModel
-                                  ? null
-                                  : () => _manage(
-                                      controller.resetReviewForTesting,
-                                    ),
-                              icon: const Icon(
-                                Icons.restart_alt_rounded,
-                                size: 17,
-                              ),
-                              label: const Text('تصفير المراجعة للاختبار'),
-                            ),
-                          ),
                         const Padding(
                           padding: EdgeInsets.only(top: 32),
                           child: _PrivacyNote(),

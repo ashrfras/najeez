@@ -90,3 +90,70 @@ String reviewDuration(num minutes) {
   }
   return minutes == rounded ? label : 'حوالي $label';
 }
+
+// Keep whole noun phrases from the title. A topic introduced by "بشأن" can
+// identify the work more precisely than the object of an action such as "إرسال".
+List<String> reviewTaskTopics(String title, {String project = ''}) {
+  String normalize(String value) => value
+      .toLowerCase()
+      .replaceAll(RegExp('[ـً-ْٰ]'), '')
+      .replaceAll(RegExp('[أإآ]'), 'ا')
+      .trim();
+  final normalized = normalize(title);
+  final words = title.trim().split(RegExp(r'\s+'));
+  final topics = <String>{};
+  final marker = RegExp(r'^(?:بشان|بخصوص|حول|عن|regarding|about)$');
+  final action = RegExp(
+    r'^(?:ال)?(?:مراجعة|تدقيق|تنقيح|فحص|تحليل|اختبار|تعديل|تحديث|اصلاح|حل|اعداد|اعادة|كتابة|صياغة|تحرير|قراءة|دراسة|تصميم|تطوير|برمجة|تنفيذ|انشاء|متابعة|تنظيم|ترتيب|تجهيز|ارسال|تسليم|شراء|حجز|تلخيص|ترجمة|راجع|اكتب|صمم|جهز|ارسل|اصلح|رتب|اقرا)$'
+    r'|^(?:review|write|draft|design|fix|update|prepare|send|test|edit|implement|check)$',
+  );
+  final boundary = RegExp(
+    r'^(?:مع|في|على|عن|الى|من|ثم|حتى|قبل|بعد|عند|ضمن|بين|حسب|اليوم|غدا|لكي|بهدف|خلال|وذلك|الذي|التي|with|before|after|for|to|by|and|in)$'
+    r'|^(?:للتاكد|لمعرفة|لتحديد|واعادة|وارسال|ومراجعة|وتنسيق|واضافة)',
+  );
+  void candidate(int start) {
+    final phrase = <String>[];
+    for (final word in words.skip(start)) {
+      final parts = word.split(RegExp(r'[^\p{L}\p{M}\p{N}-]', unicode: true));
+      final token = parts.first;
+      final key = normalize(token);
+      if (key.isEmpty || boundary.hasMatch(key) || marker.hasMatch(key)) break;
+      phrase.add(token);
+      if (phrase.length > 4) return;
+      if (parts.length > 1) break;
+    }
+    final text = phrase.join(' ');
+    final key = normalize(text);
+    if (text.length < 2 ||
+        text.length > 38 ||
+        key == normalized ||
+        key == normalize(project) ||
+        !RegExp(r'\p{L}', unicode: true).hasMatch(text)) {
+      return;
+    }
+    if (RegExp(
+      r'^(?:المهمة|مهمة|العمل|عمل|تفاصيل|كل شيء|هذا|ذلك|the|a|an)$',
+    ).hasMatch(key)) {
+      return;
+    }
+    topics.add(text);
+  }
+
+  for (var i = 0; i < words.length - 1; i++) {
+    if (marker.hasMatch(normalize(words[i]))) candidate(i + 1);
+  }
+  if (words.length > 1 && action.hasMatch(normalize(words.first))) {
+    candidate(1);
+  } else if (words.length > 1) {
+    // A nominal heading before a separator is often already a clear subject.
+    // Require a boundary so an arbitrary short title cannot be echoed whole.
+    final first = normalize(words.first);
+    if (first.startsWith('ال') ||
+        RegExp(
+          r'^(?:صفحة|شاشة|خطة|مسودة|تقرير|ملف|مشكلة|موعد|ميزانية|مقالة|فاتورة|وثيقة)$',
+        ).hasMatch(first)) {
+      candidate(0);
+    }
+  }
+  return topics.take(3).toList();
+}

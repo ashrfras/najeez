@@ -90,6 +90,84 @@ void main() {
     },
   );
 
+  test('review identifies selected tasks within the same project', () {
+    const done = 'مراجعة مسودة العقد مع المورد قبل موعد التسليم';
+    const open = 'تحديث جدول الدفعات بعد الاتفاق مع المورد';
+    final evidence = jsonDecode(
+      qwenEvidence(
+        capture([
+          task(
+            done,
+            firstUse,
+            tag: 'المشتريات',
+            done: now,
+            entries: [TimeEntry(id: 'focus:done', minutes: 30, createdAt: now)],
+          ),
+          task(open, firstUse, tag: 'المشتريات'),
+        ]),
+      ),
+    );
+    final paragraphs = evidence['sections'] as List;
+    final article = paragraphs.map((p) => p['opening']).join(' ');
+    expect(
+      paragraphs.first['opening'],
+      contains('المهمة التي تخصّ مسودة العقد ضمن مشروع «المشتريات»'),
+    );
+    expect(
+      paragraphs.last['opening'],
+      contains('المهمة التي تخصّ جدول الدفعات'),
+    );
+    expect('مسودة العقد'.allMatches(article), hasLength(1));
+    expect(article, isNot(contains(done)));
+    expect(article, isNot(contains(open)));
+  });
+
+  test(
+    'focus identifies an untagged task once and ambiguous work stays general',
+    () {
+      const title = 'اختبار شاشة الدخول على الهاتف بعد التحديث';
+      final evidence = jsonDecode(
+        qwenEvidence(
+          capture([
+            task(
+              title,
+              firstUse,
+              entries: [
+                TimeEntry(id: 'focus:work', minutes: 35, createdAt: now),
+              ],
+            ),
+          ]),
+        ),
+      );
+      final article = evidence['sections'].toString();
+      expect('شاشة الدخول'.allMatches(article), hasLength(1));
+      expect(article, isNot(contains(title)));
+      expect(reviewTaskTopics('للضرورة'), isEmpty);
+      expect(
+        reviewTaskTopics('مراجعة الميزانية', project: 'الميزانية'),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'Qwen can choose between the object and a specific subject for a planned task',
+    () {
+      const title = 'إرسال رسالة للمورد بشأن عقد الصيانة قبل الاجتماع';
+      final evidence = jsonDecode(
+        qwenEvidence(
+          capture([task(title, firstUse).copyWith(bucket: TaskBucket.later)]),
+        ),
+      );
+      expect(evidence['موضوعات المهام'], [
+        ['عقد الصيانة', 'رسالة للمورد'],
+      ]);
+      final opening = evidence['sections'].last['opening'] as String;
+      expect(opening, contains('المهمة التي تخصّ {topic0}'));
+      expect(opening, isNot(contains(title)));
+    },
+  );
+
   test(
     'completion names survive a day crowded with more recent focus sessions and notes',
     () {
@@ -260,7 +338,7 @@ void main() {
       expect(prose, isNot(contains(title)));
       expect(laterData['subjects'].single['title'], title);
       final planned = jsonDecode(qwenEvidence(revised));
-      expect(planned['sections'].last['opening'], contains('مخطّط للغد'));
+      expect(planned['sections'].last['opening'], contains('للغد'));
       final empty = capture([]);
       expect(empty.changedSince(null, allowPlanning: true), isTrue);
       expect(
@@ -534,15 +612,6 @@ void main() {
       );
       await fresh.generateReview((_) async => 'مراجعة محدثة');
       expect((await reopened.getDailyReview())!.text, 'مراجعة محدثة');
-      final tasksBefore = fresh.tasks.length;
-      await fresh.resetReviewForTesting();
-      await fresh.load();
-      expect(fresh.dailyReview, isNull);
-      expect(await reopened.getDailyReview(), isNull);
-      expect(fresh.tasks.length, tasksBefore);
-      expect(fresh.reviewUnlockAt, unlock.toUtc());
-      await fresh.generateReview((_) async => 'إعادة اختبار نفس اليوم');
-      expect((await reopened.getDailyReview())!.text, 'إعادة اختبار نفس اليوم');
       time = time.add(const Duration(days: 1));
       await fresh.refreshDay();
       await fresh.generateReview((_) => throw StateError('new day only'));
