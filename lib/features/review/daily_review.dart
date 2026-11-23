@@ -113,13 +113,21 @@ class ReviewSnapshot {
     final signals = <_Signal>[];
     final activeIds = <String>{};
     final activeTags = <String>{};
+    final workedTagsToday = <String>{};
+    final completedByTag = <String, int>{};
+    final nextTaskByTag = <String, Task>{};
+    var carriedInCompleted = 0;
     final previousWorkByTag = <String, _Totals>{};
     final lastWorkByTag = <String, String>{};
-    int previousFocusByThisTime = 0;
+    final previousFocusByDay = <String, int>{};
     final localNow = now.toLocal();
     int dayMinute(DateTime local) =>
         (local.hour * 60 + local.minute - logicalDay.startMinutes) % 1440;
-    final focusedTasks = <String, ({String title, int minutes})>{};
+    final focusedTasks =
+        <
+          String,
+          ({String title, int minutes, bool completedToday, bool open})
+        >{};
     final focusByTag = <String, int>{};
     final pendingTodayIds = <String>[];
     final pendingByBucket = <String, int>{};
@@ -141,11 +149,19 @@ class ReviewSnapshot {
           'scheduled': _dateKey(task.scheduledDate!),
       };
       if (!done) {
-        if (bucket == TaskBucket.today.name) pendingTodayIds.add(task.id);
+        if (bucket == TaskBucket.today.name) {
+          pendingTodayIds.add(task.id);
+          if (task.tag case final tag?) {
+            if (!nextTaskByTag.containsKey(tag) || task.isPinned) {
+              nextTaskByTag[tag] = task;
+            }
+          }
+        }
         pendingByBucket.update(bucket, (v) => v + 1, ifAbsent: () => 1);
-        pending.add(details);
       }
 
+      DateTime? lastNoteAt;
+      String? lastNote;
       void record(
         DateTime at,
         String kind,
@@ -162,6 +178,12 @@ class ReviewSnapshot {
             total.created++;
           case 'completed':
             total.completed++;
+            if (key == todayKey) {
+              if (details['created'] != todayKey) carriedInCompleted++;
+              if (task.tag case final tag?) {
+                completedByTag.update(tag, (v) => v + 1, ifAbsent: () => 1);
+              }
+            }
           case 'focus':
             total.sessions++;
             total.focus += minutes;
@@ -169,6 +191,8 @@ class ReviewSnapshot {
               focusedTasks[task.id] = (
                 title: _excerpt(task.title, 72),
                 minutes: (focusedTasks[task.id]?.minutes ?? 0) + minutes,
+                completedToday: done && logicalDay.dayOf(completed) == day,
+                open: !done,
               );
               focusByTag.update(
                 task.tag ?? 'غير مصنف',
@@ -180,6 +204,19 @@ class ReviewSnapshot {
             total.manual += minutes;
           case 'note':
             total.notes++;
+            if (key == todayKey &&
+                note != null &&
+                note.isNotEmpty &&
+                (lastNoteAt == null || at.isAfter(lastNoteAt!))) {
+              lastNote = _excerpt(note, 100);
+              lastNoteAt = at;
+            }
+        }
+
+        if (key == todayKey &&
+            task.tag != null &&
+            (kind == 'completed' || kind == 'focus' || kind == 'manual')) {
+          workedTagsToday.add(task.tag!);
         }
 
         if (key != todayKey &&
@@ -196,7 +233,11 @@ class ReviewSnapshot {
           }
           if (kind == 'focus' &&
               dayMinute(at.toLocal()) <= dayMinute(localNow)) {
-            previousFocusByThisTime += minutes;
+            previousFocusByDay.update(
+              key,
+              (v) => v + minutes,
+              ifAbsent: () => minutes,
+            );
           }
         }
         final focusPrefix = 'focus:${task.id}:';
@@ -258,6 +299,14 @@ class ReviewSnapshot {
           note: '${note.title} ${note.text}'.trim(),
         );
       }
+      if (!done) {
+        pending.add({
+          ...details,
+          'latestNoteToday': ?lastNote,
+          if (focusedTasks.containsKey(task.id))
+            'focusToday': focusedTasks[task.id]!.minutes,
+        });
+      }
     }
 
     final material = [
@@ -308,14 +357,14 @@ class ReviewSnapshot {
       'asOfLocal': now.toLocal().toIso8601String(),
       'windowStart': _dateKey(start),
       'timeTrackingEnabledNow': timeTrackingEnabled,
-      if (totals.length > 1)
-        'meanPriorFocusMinutesBySameLocalTime':
-            previousFocusByThisTime / (totals.length - 1),
+      'priorActiveDayFocusBySameTime': previousFocusByDay.values.toList()
+        ..sort(),
       'priorWorkForActiveTags': [
         for (final tag in (activeTags.toList()..sort()).take(6))
           {
             'tag': _excerpt(tag, 36),
             'lastWorkDayInWindow': lastWorkByTag[tag],
+            'workedToday': workedTagsToday.contains(tag),
             'completed': previousWorkByTag[tag]?.completed ?? 0,
             'focusMinutes': previousWorkByTag[tag]?.focus ?? 0,
             'manualMinutes': previousWorkByTag[tag]?.manual ?? 0,
@@ -336,8 +385,63 @@ class ReviewSnapshot {
       'topFocusMinutesTodayByTask': [
         for (final task in focused.take(5)) [task.title, task.minutes],
       ],
+      'focusOutcomesToday': [
+        for (final task in focused.take(3))
+          {
+            'task': task.title,
+            'minutes': task.minutes,
+            'completedToday': task.completedToday,
+            'open': task.open,
+          },
+      ],
       'topFocusMinutesTodayByTag': [
         for (final tag in tags.take(6)) [_excerpt(tag.key, 36), tag.value],
+      ],
+      'priorCompletedTasks': history
+          .where((row) => row['event'] == 'completed')
+          .take(4)
+          .map(
+            (row) => {
+              'task': row['task'],
+              'day': row['completedDay'],
+              if (row.containsKey('tag')) 'tag': row['tag'],
+            },
+          )
+          .toList(),
+      'pendingTodayExamples': pending
+          .where((row) => row['listNow'] == 'today')
+          .take(4)
+          .toList(),
+      'completedTodayExamples': today
+          .where((row) => row['event'] == 'completed')
+          .take(16)
+          .map(
+            (row) => {
+              'task': row['task'],
+              'created': row['created'],
+              'at': row['at'],
+              if (row.containsKey('tag')) 'tag': row['tag'],
+            },
+          )
+          .toList(),
+      'carriedInCompleted': carriedInCompleted,
+      'focusOnCompletedToday': focused
+          .where((task) => task.completedToday)
+          .fold<int>(0, (sum, task) => sum + task.minutes),
+      'focusOnOpenTasks': focused
+          .where((task) => task.open)
+          .fold<int>(0, (sum, task) => sum + task.minutes),
+      'projectCompletions': [
+        for (final entry
+            in (completedByTag.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value)))
+                .take(4))
+          {
+            'tag': _excerpt(entry.key, 36),
+            'done': entry.value,
+            if (nextTaskByTag[entry.key] case final next?)
+              'nextTask': _excerpt(next.title, 72),
+          },
       ],
       'todayExamples': today.take(10).toList(),
       'pendingExamples': pending.take(5).toList(),
@@ -356,12 +460,14 @@ class ReviewSnapshot {
   String prompt({required bool compact}) {
     final data = Map.of(payload);
     for (final key in [
+      'completedTodayExamples',
       'todayExamples',
       'pendingExamples',
       'historicalExamples',
     ]) {
       final rows = payload[key] as List;
       final limit = switch (key) {
+        'completedTodayExamples' => compact ? 800 : 1100,
         'todayExamples' => compact ? 420 : 1700,
         'pendingExamples' => compact ? 180 : 650,
         _ => compact ? 240 : 850,

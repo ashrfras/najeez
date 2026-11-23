@@ -221,6 +221,11 @@ class TaskController extends ChangeNotifier {
   SavedDailyReview? _dailyReview;
   SavedDailyReview? get dailyReview => _dailyReview;
   bool _reviewBusy = false;
+  bool _reviewCancelled = false;
+  void cancelReview() {
+    if (_reviewBusy) _reviewCancelled = true;
+  }
+
   bool get reviewBusy => _reviewBusy;
   int _reviewEpoch = 0;
 
@@ -241,14 +246,21 @@ class TaskController extends ChangeNotifier {
     if (_reviewBusy || !reviewAgeEligible) return;
     final epoch = _reviewEpoch;
     _reviewBusy = true;
+    _reviewCancelled = false;
     notifyListeners();
     try {
       final snapshot = await captureReview();
-      if (epoch != _reviewEpoch || !snapshot.changedSince(_dailyReview)) return;
+      if (_reviewCancelled ||
+          epoch != _reviewEpoch ||
+          !snapshot.changedSince(_dailyReview)) {
+        return;
+      }
       final text = (await generate(snapshot)).trim();
       if (text.isEmpty) throw const FormatException('Empty review');
       await _serializeRepeat(() async {
-        if (epoch != _reviewEpoch || snapshot.day != logicalDay.dayOf(now)) {
+        if (_reviewCancelled ||
+            epoch != _reviewEpoch ||
+            snapshot.day != logicalDay.dayOf(now)) {
           return;
         }
         final review = SavedDailyReview(
@@ -266,6 +278,13 @@ class TaskController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> resetReviewForTesting() => _serializeRepeat(() async {
+    _reviewEpoch++;
+    await _repository.clearDailyReview();
+    _dailyReview = null;
+    notifyListeners();
+  });
 
   Future<void> load() => _serializeRepeat(_load);
 

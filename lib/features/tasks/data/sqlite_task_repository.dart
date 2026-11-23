@@ -276,6 +276,15 @@ class SqliteTaskRepository implements TaskRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  @override
+  Future<void> clearDailyReview() async {
+    await _database.delete(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['daily_review'],
+    );
+  }
+
   Future<String?> backupSetting(String key) async {
     final rows = await _database.query(
       'settings',

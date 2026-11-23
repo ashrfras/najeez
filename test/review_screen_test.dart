@@ -19,6 +19,8 @@ class _Storage extends MemoryRepository {
   @override
   Future<SavedDailyReview?> getDailyReview() async => saved;
   @override
+  Future<void> clearDailyReview() async => saved = null;
+  @override
   Future<void> saveDailyReview(SavedDailyReview review) async => saved = review;
 }
 
@@ -121,6 +123,35 @@ void main() {
     testWidgets(
       'review keeps the statistics viewport and dark palette on a ${brightness.name} device',
       (tester) async {
+        const channel = MethodChannel('ma.raqmain.najeez/qwen');
+        const events = EventChannel('ma.raqmain.najeez/qwen/state');
+        final messenger = tester.binding.defaultBinaryMessenger;
+        final state = <String, Object>{
+          'phase': 'missing',
+          'total': 1282439584,
+          'installed': 0,
+          'received': 0,
+          'error': '',
+        };
+        late MockStreamHandlerEventSink changes;
+        final commands = <String>[];
+        messenger.setMockStreamHandler(
+          events,
+          MockStreamHandler.inline(
+            onListen: (_, sink) {
+              changes = sink;
+            },
+          ),
+        );
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'status') return state;
+          commands.add(call.method);
+          return null;
+        });
+        addTearDown(() {
+          messenger.setMockMethodCallHandler(channel, null);
+          messenger.setMockStreamHandler(events, null);
+        });
         final view = tester.view;
         view.devicePixelRatio = 1;
         view.physicalSize = const Size(390, 844);
@@ -194,17 +225,55 @@ void main() {
           Theme.of(tester.element(find.byType(ActivityPageHeader))).brightness,
           Brightness.dark,
         );
-        expect(
-          find.text('توليد مراجعات جديدة غير متاح حاليًا.'),
-          findsOneWidget,
+        expect(commands, isEmpty);
+        await tester.ensureVisible(find.text('تنزيل النموذج'));
+        await tester.tap(find.text('تنزيل النموذج'));
+        await tester.pump();
+        expect(commands, ['download']);
+        changes.success({
+          ...state,
+          'phase': 'downloading',
+          'received': 641219792,
+        });
+        await tester.pumpAndSettle();
+        expect(find.textContaining('50٪'), findsOneWidget);
+        await tester.ensureVisible(find.text('إلغاء التنزيل'));
+        await tester.tap(find.text('إلغاء التنزيل'));
+        await tester.pump();
+        expect(commands.last, 'cancelDownload');
+        changes.success({...state, 'error': 'network'});
+        await tester.pumpAndSettle();
+        expect(find.text('إعادة تنزيل النموذج'), findsOneWidget);
+        changes.success({...state, 'phase': 'verifying'});
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(find.textContaining('سلامة الملف'), findsOneWidget);
+        changes.success({...state, 'phase': 'ready', 'installed': 1282439584});
+        await tester.pumpAndSettle();
+        expect(find.text('مثبّت وجاهز للاستخدام'), findsOneWidget);
+        expect(find.textContaining('غيغابايت'), findsNothing);
+        await tester.ensureVisible(find.text('حذف النموذج'));
+        await tester.tap(find.text('حذف النموذج'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.text('حذف النموذج'),
+          ),
         );
-        expect(find.byType(FilledButton), findsNothing);
+        await tester.pumpAndSettle();
+        expect(commands.last, 'remove');
+        changes.success(state);
+        await tester.pumpAndSettle();
         repo.saved = SavedDailyReview(
           day: date,
           asOf: date,
           generatedAt: date,
           signature: 'previous',
-          text: 'تركّز عملك اليوم على إنهاء مسودة العرض.',
+          text: [
+            'تركّز عملك اليوم على إنهاء مسودة العرض.',
+            for (var i = 0; i < 20; i++) 'فقرة رقم $i من نص المراجعة المطوّلة.',
+          ].join('\n\n'),
         );
         await controller.load();
         await tester.pumpAndSettle();
@@ -214,16 +283,43 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('تحديث المراجعة'), findsNothing);
+        final inner = find.byKey(const ValueKey('review-text-scroll'));
+        await tester.ensureVisible(inner);
+        final scroll = tester.widget<SingleChildScrollView>(inner).controller!;
+        expect(scroll.position.maxScrollExtent, greaterThan(0));
+        await tester.drag(inner, const Offset(0, -180));
+        await tester.pumpAndSettle();
+        expect(scroll.offset, greaterThan(0));
+        expect(
+          tester.getTopLeft(find.text('النموذج المحلي · Qwen3 1.7B')).dy,
+          greaterThan(tester.getBottomLeft(inner).dy),
+        );
         view.physicalSize = const Size(320, 560);
         tester.platformDispatcher.textScaleFactorTestValue = 1.6;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         await tester.pumpAndSettle();
-        await tester.drag(
-          find.byType(SingleChildScrollView),
-          const Offset(0, -3000),
-        );
+        // Drag in the page gutter, outside the article's independent scroll area.
+        await tester.dragFrom(const Offset(8, 430), const Offset(0, -1800));
         await tester.pumpAndSettle();
         expect(find.text('خصوصية المراجعة').hitTestable(), findsOneWidget);
+        changes.success({...state, 'phase': 'ready', 'installed': 1282439584});
+        await tester.pumpAndSettle();
+        final commandsBeforeReset = List.of(commands);
+        await tester.ensureVisible(find.text('تصفير المراجعة للاختبار'));
+        await tester.tap(find.text('تصفير المراجعة للاختبار'));
+        await tester.pumpAndSettle();
+        expect(repo.saved, isNull);
+        expect(find.text('مراجعة يومك'), findsOneWidget);
+        expect(commands, commandsBeforeReset);
+        expect(find.text('مثبّت وجاهز للاستخدام'), findsOneWidget);
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'تحليل إنتاجيتي'),
+              )
+              .onPressed,
+          isNotNull,
+        );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         controller.dispose();
