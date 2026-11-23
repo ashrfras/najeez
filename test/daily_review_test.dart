@@ -80,17 +80,13 @@ void main() {
       final article = evidence['sections'].toString();
       expect(article, contains('قبل أربعة أيام'));
       expect(article, contains('معظم هذا الوقت إلى مهام أغلقتها'));
-      expect(
-        article,
-        contains('عشر دقائق لمهمة «التدقيق» التي ما زالت مفتوحة'),
-      );
+      expect(article, contains('عشر دقائق لعمل ما زال مفتوحًا'));
+      expect(article, isNot(contains('التدقيق')));
       expect(article, isNot(contains('عادةً')));
       final scarce = jsonDecode(qwenEvidence(capture([task('التخطيط', now)])));
-      expect(scarce['sections'].length, 1);
-      expect(
-        scarce['sections'].single['readings'],
-        contains('السجل محدود للحكم على سير التنفيذ حتى الآن.'),
-      );
+      expect(scarce['sections'].length, 2);
+      expect(scarce['sections'].last['next'], true);
+      expect(scarce['sections'].last['opening'], contains('قائمة اليوم'));
     },
   );
 
@@ -222,6 +218,81 @@ void main() {
       );
       expect(next['opening'], contains('بقيت مراجعة الأمثلة'));
       expect(next['opening'], isNot(contains('أرسلت النسخة')));
+    },
+  );
+
+  test(
+    'quiet requests coach tomorrow and later work without presenting titles or claiming progress',
+    () {
+      const title =
+          'كتابة تفاصيل طويلة عن آلية التعاون بين أعضاء الفريق ومراجعة النسخ النهائية';
+      final later = task(
+        'later',
+        firstUse,
+        tag: 'التحرير',
+      ).copyWith(title: title, bucket: TaskBucket.later);
+      final snapshot = capture([later]);
+      expect(snapshot.hasActivity, isFalse);
+      expect(snapshot.changedSince(null, allowPlanning: true), isTrue);
+      expect(
+        snapshot.changedSince(saved(snapshot), allowPlanning: true),
+        isFalse,
+      );
+      final nextDay = capture([later], at: now.add(const Duration(days: 1)));
+      expect(
+        nextDay.changedSince(saved(snapshot), allowPlanning: true),
+        isFalse,
+      );
+      final tomorrow = task('tomorrow', firstUse).copyWith(
+        title: 'مراجعة مسودة المراسلة',
+        bucket: TaskBucket.tomorrow,
+        scheduledDate: DateTime(2026, 11, 30),
+      );
+      final revised = capture([later, tomorrow]);
+      expect(
+        revised.changedSince(saved(snapshot), allowPlanning: true),
+        isTrue,
+      );
+      final laterData = jsonDecode(qwenEvidence(snapshot));
+      final prose = laterData['sections'].toString();
+      expect(prose, contains('لوقت لاحق'));
+      expect(prose, contains('مشروع «التحرير»'));
+      expect(prose, isNot(contains(title)));
+      expect(laterData['subjects'].single['title'], title);
+      final planned = jsonDecode(qwenEvidence(revised));
+      expect(planned['sections'].last['opening'], contains('مخطّط للغد'));
+      final empty = capture([]);
+      expect(empty.changedSince(null, allowPlanning: true), isTrue);
+      expect(
+        jsonDecode(qwenEvidence(empty))['sections'].last['opening'],
+        contains('جلستك القادمة'),
+      );
+    },
+  );
+
+  test(
+    'quiet advice connects upcoming work only to its own project history',
+    () {
+      final prior = now.subtract(const Duration(days: 4));
+      final upcoming = task(
+        'أداة تشغيل التجربة',
+        firstUse,
+        tag: 'البداية',
+      ).copyWith(bucket: TaskBucket.later);
+      final related = task('المقدمة', firstUse, tag: 'البداية', done: prior);
+      final unrelated = task(
+        'موعد',
+        firstUse,
+        tag: 'التنسيق',
+        done: now.subtract(const Duration(days: 1)),
+      );
+      final snapshot = capture([upcoming, related, unrelated]);
+      final next =
+          jsonDecode(qwenEvidence(snapshot))['sections'].last['opening']
+              as String;
+      expect(next, contains('مشروع «البداية» قبل أربعة أيام'));
+      expect(next, isNot(contains('التنسيق')));
+      expect(next, isNot(contains(upcoming.title)));
     },
   );
 

@@ -206,6 +206,7 @@ class _ReviewScreenState extends State<ReviewScreen>
     try {
       await widget.controller.generateReview(
         (data) => model.generate(data, language),
+        allowPlanning: true,
       );
     } catch (exception) {
       if (!mounted) return;
@@ -336,7 +337,8 @@ class _ReviewScreenState extends State<ReviewScreen>
     }
     final ready = result.connectionState == ConnectionState.done;
     final data = result.data;
-    final eligible = ready && data != null && data.changedSince(saved);
+    final eligible =
+        ready && data != null && data.changedSince(saved, allowPlanning: true);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -351,11 +353,10 @@ class _ReviewScreenState extends State<ReviewScreen>
             icon: Icons.memory_rounded,
             text: 'النموذج المحلي غير متاح حاليًا.',
           ),
-        if (ready && data != null && !data.hasActivity)
+        if (eligible && !data.hasActivity)
           const _Notice(
             icon: Icons.edit_note_rounded,
-            text:
-                'تحتاج مراجعة اليوم إلى نشاط مسجّل، مثل إضافة مهمة أو إنجازها أو تسجيل وقت عمل.',
+            text: 'يمكنك طلب اقتراح يساعدك على اختيار خطوتك التالية.',
           ),
         if (error != null)
           _Notice(icon: Icons.info_outline_rounded, text: error!),
@@ -365,7 +366,7 @@ class _ReviewScreenState extends State<ReviewScreen>
             child: const Text('إعادة قراءة بيانات النشاط'),
           )
         else if (saved == null || eligible) ...[
-          if (saved != null)
+          if (saved != null && data?.hasActivity == true)
             const _Notice(
               icon: Icons.update_rounded,
               text:
@@ -390,7 +391,11 @@ class _ReviewScreenState extends State<ReviewScreen>
               ),
               onPressed: eligible && available == true ? _generate : null,
               child: Text(
-                saved == null ? 'تحليل إنتاجيتي' : 'تحديث المراجعة',
+                data?.hasActivity == false
+                    ? 'اقتراح خطوة تالية'
+                    : saved == null
+                    ? 'تحليل إنتاجيتي'
+                    : 'تحديث المراجعة',
                 style: AppType.body.copyWith(fontWeight: FontWeight.bold),
               ),
             ),

@@ -119,6 +119,44 @@ void main() {
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
   );
+  testWidgets(
+    'quiet-day coaching requires a tap and cannot repeat on an unchanged queue',
+    (tester) async {
+      final model = _TestModel();
+      var now = DateTime(2026, 10, 1);
+      final controller = _Controller(_Storage(), clock: () => now);
+      await controller.load();
+      now = DateTime(2026, 10, 10);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: ReviewScreen(controller: controller, model: model),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final action = find.text('اقتراح خطوة تالية');
+      expect(action, findsOneWidget);
+      expect(model.calls, 0);
+      await tester.ensureVisible(action);
+      await tester.tap(action);
+      await tester.pump();
+      model.output.complete('ما الخطوة الصغيرة التي تحب أن تبدأ بها؟');
+      await tester.pumpAndSettle();
+      expect(controller.dailyReview?.text, contains('الخطوة الصغيرة'));
+      expect(action, findsNothing);
+      now = now.add(const Duration(days: 1));
+      await controller.refreshDay();
+      await tester.pumpAndSettle();
+      expect(model.calls, 1);
+      expect(action, findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
   for (final brightness in Brightness.values) {
     testWidgets(
       'review keeps the statistics viewport and dark palette on a ${brightness.name} device',

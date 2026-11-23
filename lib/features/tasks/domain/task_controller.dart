@@ -241,8 +241,9 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> generateReview(
-    Future<String> Function(ReviewSnapshot) generate,
-  ) async {
+    Future<String> Function(ReviewSnapshot) generate, {
+    bool allowPlanning = false,
+  }) async {
     if (_reviewBusy || !reviewAgeEligible) return;
     final epoch = _reviewEpoch;
     _reviewBusy = true;
@@ -252,7 +253,7 @@ class TaskController extends ChangeNotifier {
       final snapshot = await captureReview();
       if (_reviewCancelled ||
           epoch != _reviewEpoch ||
-          !snapshot.changedSince(_dailyReview)) {
+          !snapshot.changedSince(_dailyReview, allowPlanning: allowPlanning)) {
         return;
       }
       final text = (await generate(snapshot)).trim();

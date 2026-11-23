@@ -56,6 +56,17 @@ class _Totals {
 String _excerpt(String text, int limit) =>
     String.fromCharCodes(text.trim().runes.take(limit));
 
+// Preserve both the action and trailing context of long titles for the local
+// classifier. The presentation layer only renders the resulting description.
+String _titleContext(String title) {
+  final text = title.trim();
+  final runes = text.runes;
+  if (runes.length <= 128) return text;
+  final head = String.fromCharCodes(runes.take(84));
+  final tail = String.fromCharCodes(runes.skip(runes.length - 40));
+  return '${head.trimRight()} … ${tail.trimLeft()}';
+}
+
 typedef _Signal = ({
   String id,
   String? tag,
@@ -80,11 +91,12 @@ class ReviewSnapshot {
   final String signature;
   final bool hasActivity;
 
-  bool changedSince(SavedDailyReview? previous) =>
-      hasActivity &&
-      (previous == null ||
-          previous.day != day ||
-          previous.signature != signature);
+  bool changedSince(SavedDailyReview? previous, {bool allowPlanning = false}) {
+    if (!hasActivity) return allowPlanning && signature != previous?.signature;
+    return previous == null ||
+        previous.day != day ||
+        previous.signature != signature;
+  }
 
   factory ReviewSnapshot.capture({
     required Iterable<Task> tasks,
@@ -126,9 +138,16 @@ class ReviewSnapshot {
     final focusedTasks =
         <
           String,
-          ({String title, int minutes, bool completedToday, bool open})
+          ({
+            String title,
+            String? project,
+            int minutes,
+            bool completedToday,
+            bool open,
+          })
         >{};
     final focusByTag = <String, int>{};
+    final planningInputs = <String>{};
     final pendingTodayIds = <String>[];
     final pendingByBucket = <String, int>{};
 
@@ -138,7 +157,7 @@ class ReviewSnapshot {
       final completed = task.completedAt;
       final done = completed != null && !completed.isAfter(now);
       final details = {
-        'task': _excerpt(task.title, 72),
+        'task': _titleContext(task.title),
         if (task.tag != null) 'tag': _excerpt(task.tag!, 36),
         'created': _dateKey(logicalDay.dayOf(task.createdAt)),
         if (task.repeatId != null) 'recurring': true,
@@ -149,6 +168,17 @@ class ReviewSnapshot {
           'scheduled': _dateKey(task.scheduledDate!),
       };
       if (!done) {
+        final automatic = task.repeatId != null && task.id.startsWith('daily:');
+        planningInputs.add(
+          jsonEncode([
+            automatic ? task.repeatId : task.id,
+            details['task'],
+            details['tag'],
+            task.bucket.name,
+            if (!automatic) details['scheduled'],
+            task.isPinned,
+          ]),
+        );
         if (bucket == TaskBucket.today.name) {
           pendingTodayIds.add(task.id);
           if (task.tag case final tag?) {
@@ -189,7 +219,8 @@ class ReviewSnapshot {
             total.focus += minutes;
             if (key == todayKey) {
               focusedTasks[task.id] = (
-                title: _excerpt(task.title, 72),
+                title: _titleContext(task.title),
+                project: details['tag'] as String?,
                 minutes: (focusedTasks[task.id]?.minutes ?? 0) + minutes,
                 completedToday: done && logicalDay.dayOf(completed) == day,
                 open: !done,
@@ -302,6 +333,7 @@ class ReviewSnapshot {
       if (!done) {
         pending.add({
           ...details,
+          'tag': ?task.tag,
           'latestNoteToday': ?lastNote,
           if (focusedTasks.containsKey(task.id))
             'focusToday': focusedTasks[task.id]!.minutes,
@@ -332,6 +364,15 @@ class ReviewSnapshot {
       }
       return recent(a, b);
     });
+    // Match the original project name before shortening it for the prompt.
+    for (final row in pending) {
+      if (row['tag'] case final String tag) {
+        row['tag'] = _excerpt(tag, 36);
+        if (lastWorkByTag[tag] case final last?) {
+          row['previousProjectWork'] = last;
+        }
+      }
+    }
     pending.sort((a, b) {
       int rank(Map<String, Object?> row) => row['pinned'] == true
           ? 0
@@ -389,6 +430,7 @@ class ReviewSnapshot {
         for (final task in focused.take(3))
           {
             'task': task.title,
+            'tag': ?task.project,
             'minutes': task.minutes,
             'completedToday': task.completedToday,
             'open': task.open,
@@ -408,6 +450,10 @@ class ReviewSnapshot {
             },
           )
           .toList(),
+      'upcomingExamples': [
+        for (final bucket in [TaskBucket.tomorrow.name, TaskBucket.later.name])
+          ...pending.where((row) => row['listNow'] == bucket).take(3),
+      ],
       'pendingTodayExamples': pending
           .where((row) => row['listNow'] == 'today')
           .take(4)
@@ -440,7 +486,7 @@ class ReviewSnapshot {
             'tag': _excerpt(entry.key, 36),
             'done': entry.value,
             if (nextTaskByTag[entry.key] case final next?)
-              'nextTask': _excerpt(next.title, 72),
+              'nextTask': _titleContext(next.title),
           },
       ],
       'todayExamples': today.take(10).toList(),
@@ -451,7 +497,9 @@ class ReviewSnapshot {
       day,
       now,
       payload,
-      sha256.convert(utf8.encode(jsonEncode(material))).toString(),
+      activeIds.isNotEmpty
+          ? sha256.convert(utf8.encode(jsonEncode(material))).toString()
+          : 'plan:${sha256.convert(utf8.encode(jsonEncode(planningInputs.toList()..sort())))}',
       activeIds.isNotEmpty,
     );
   }

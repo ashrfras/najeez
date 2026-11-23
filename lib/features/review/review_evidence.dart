@@ -4,9 +4,6 @@ import 'daily_review.dart';
 
 import 'review_language.dart';
 
-String _names(Iterable<Map> rows) =>
-    rows.map((row) => '«${row['task']}»').join(' و');
-
 /// Each paragraph has a factual opening and complementary readings of the
 /// same evidence. The model selects the interpretation within each topic.
 String qwenEvidence(ReviewSnapshot snapshot) {
@@ -28,73 +25,80 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     });
   }
 
+  // Wording is selected by Qwen from broad work types. Titles are evidence
+  // for that decision and are never substituted into the displayed review.
+  final subjects = <Map<String, String>>[];
+  int subject(Map row) {
+    final item = {
+      'title': row['task'] as String,
+      'project': (row['tag'] as String? ?? '').trim(),
+    };
+    final found = subjects.indexWhere(
+      (s) => s['title'] == item['title'] && s['project'] == item['project'],
+    );
+    if (found >= 0) return found;
+    subjects.add(item);
+    return subjects.length - 1;
+  }
+
+  String area(Map row) {
+    final project = (row['tag'] as String? ?? '').trim();
+    return project.isEmpty ? '{work${subject(row)}}' : 'مشروع «$project»';
+  }
+
+  String inArea(Map row) => (row['tag'] as String? ?? '').trim().isEmpty
+      ? '{in${subject(row)}}'
+      : ' في ${area(row)}';
+
+  String step(Map row) => '{step${subject(row)}}';
+
   if (completions.isNotEmpty) {
-    final named = _names(completions.take(3));
-    final earlier = data['carriedInCompleted'] as int;
     final older =
-        completions
-            .where((task) => task['created'] != data['logicalDay'])
-            .toList()
+        completions.where((t) => t['created'] != data['logicalDay']).toList()
           ..sort(
             (a, b) =>
                 (a['created'] as String).compareTo(b['created'] as String),
           );
-    final oldest = older.firstOrNull;
-    final since = oldest == null
-        ? null
-        : reviewRelativeDay(
-            reviewDaysAgo(oldest['created'] as String, snapshot.day),
-          );
-    final opening = completed == 1 && since != null
-        ? 'أغلقت اليوم $named، وهي مهمة أضفتها $since.'
-        : completed <= 3
-        ? 'أنجزت اليوم $named.'
-        : 'من بين المهام التي أنجزتها اليوم $named.';
-    paragraph(opening, [
-      if (completed > 1 && oldest != null)
-        'كانت «${oldest['task']}» مفتوحة منذ أن أضفتها $since${earlier < completed ? '، فجمعت اليوم بين إنهاء عمل سابق وإنجاز مهام جديدة' : ''}.',
-      for (final project in projects.where(
-        (p) => (p['done'] as int) >= 2 && p['done'] * 2 > completed,
-      ))
-        'تركّز ما أنهيته اليوم بالدرجة الأولى في «${project['tag']}»${project['nextTask'] == null ? '.' : '، وما زال لهذا العمل امتداد في قائمة اليوم.'}',
-      if (focus == 0 && data['timeTrackingEnabledNow'] == true)
-        'يظهر أثر عملك اليوم في المهام المكتملة، حتى مع غياب جلسات تركيز مسجّلة.',
-    ]);
+    final work = older.firstOrNull ?? completions.first;
+    final since = reviewRelativeDay(
+      reviewDaysAgo(work['created'] as String, snapshot.day),
+    );
+    paragraph(
+      older.isNotEmpty
+          ? 'أنهيت اليوم خطوة${inArea(work)} كنت قد خطّطت لها $since.'
+          : 'حوّلت اليوم ما خطّطت له${inArea(work)} إلى عمل مكتمل.',
+      [
+        if (older.isNotEmpty && (data['carriedInCompleted'] as int) < completed)
+          'جمعت بين إتمام ما كان معلّقًا وفتح المجال للعمل الجديد الذي أنجزته اليوم أيضًا.',
+        if (focus == 0 && data['timeTrackingEnabledNow'] == true)
+          'حتى من دون جلسة تركيز مسجّلة، لديك نتيجة ملموسة ترجع إليها عند اختيار ما يليها.',
+      ],
+    );
   }
-
   if (focus > 0 && focused.isNotEmpty) {
     final top = focused.first;
-    final topMinutes = top['minutes'] as int;
-    final title = '«${top['task']}»';
+    final minutes = top['minutes'] as int;
     final closedTime = data['focusOnCompletedToday'] as int;
     final openTime = data['focusOnOpenTasks'] as int;
-    final openTask = focused.where((t) => t['open'] == true).firstOrNull;
-    final ongoing = openTask == null
-        ? 'لأعمال ما زالت قيد التنفيذ'
-        : openTask['minutes'] == openTime
-        ? 'لمهمة «${openTask['task']}» التي ما زالت مفتوحة'
-        : 'لأعمال ما زالت مفتوحة، منها «${openTask['task']}»';
-    final opening = topMinutes == focus
-        ? 'خصّصت ${reviewDuration(focus)} من التركيز لمهمة $title.'
-        : topMinutes * 3 >= focus * 2
-        ? 'استأثرت $title بمعظم تركيزك اليوم. خصّصت لها ${reviewDuration(topMinutes)} من أصل ${reviewDuration(focus)}.'
-        : 'توزّع تركيزك اليوم على أكثر من مهمة خلال ${reviewDuration(focus)}، منها $title.';
+    final opening = minutes == focus
+        ? 'منحت ${area(top)} ${reviewDuration(focus)} من التركيز اليوم.'
+        : minutes * 3 >= focus * 2
+        ? 'كان النصيب الأكبر من تركيزك اليوم في ${area(top)}، حيث قضيت ${reviewDuration(minutes)} من أصل ${reviewDuration(focus)}.'
+        : 'وزّعت ${reviewDuration(focus)} من التركيز بين أكثر من مهمة اليوم، وكان من بينها عمل في ${area(top)}.';
     paragraph(opening, [
       if (openTime > 0 && closedTime > 0)
-        if (openTime * 3 >= focus * 2)
-          'ذهب معظم هذا الوقت إلى عمل ما زال مفتوحًا، لذا تُظهر قائمة الإنجازات جزءًا فقط مما عملت عليه اليوم.'
-        else if (closedTime * 3 >= focus * 2)
-          'ذهب معظم هذا الوقت إلى مهام أغلقتها اليوم، وخصّصت ${reviewDuration(openTime)} $ongoing.'
+        if (closedTime * 3 >= focus * 2)
+          'ذهب معظم هذا الوقت إلى مهام أغلقتها، وخصّصت ${reviewDuration(openTime)} لعمل ما زال مفتوحًا.'
+        else if (openTime * 3 >= focus * 2)
+          'ذهب معظم هذا الجهد إلى أعمال ما زلت تتابعها، فعدد المهام المكتملة وحده لا يُظهر كل ما عملت عليه.'
         else
-          'جمعت جلساتك بين إنهاء أعمال ومواصلة مهام مفتوحة، فظهر أثر التركيز في جانبي قائمة اليوم.'
-      else if (openTime == focus && completed > 0)
-        'جاءت إنجازاتك اليوم من مهام أخرى، بينما ذهب وقت التركيز المسجّل إلى عمل ما زال مفتوحًا.'
-      else if (openTime == focus && sessions > 1)
-        'عدت خلال جلسات اليوم إلى أعمال ما زالت قيد التنفيذ. يفيد سجل التركيز هنا في تتبّع تقدم لا يظهر بعد في قائمة الإنجازات.'
-      else if (closedTime == focus && top['completedToday'] == true)
-        'أغلقت $title اليوم، فاجتمع فيها التركيز المسجّل والإنجاز.',
+          'جزء من هذا الوقت أثمر إنجازًا اليوم، وجزء آخر أعطاك نقطة يمكنك أن تواصل منها.',
+      if (openTime == focus && completed > 0)
+        'أنجزت أعمالًا أخرى اليوم أيضًا، بينما بقيت المهام التي ركّزت عليها مفتوحة.',
+      if (closedTime == focus && top['completedToday'] == true)
+        'اكتمل اليوم العمل الذي خصّصت له هذا الوقت.',
       if (sessions == 1 && completed == 0 && notes == 0 && manual == 0)
-        'هذه جلسة واحدة حتى الآن، وما زال من المبكر استخلاص نمط لليوم.',
+        'هذه جلسة واحدة حتى الآن. إن أردت تسهيل العودة إليها، دوّن أين توقّفت بينما التفاصيل حاضرة.',
     ]);
 
     // Compare like with like: prior active days at the same logical-day cutoff.
@@ -120,71 +124,105 @@ String qwenEvidence(ReviewSnapshot snapshot) {
   }
 
   final progress = <String>[];
-  for (final tag in rows('priorWorkForActiveTags')) {
-    final last = tag['lastWorkDayInWindow'] as String?;
-    if (last == null || tag['workedToday'] != true) continue;
+  for (final project in rows('priorWorkForActiveTags')) {
+    final last = project['lastWorkDayInWindow'] as String?;
+    if (last == null || project['workedToday'] != true) continue;
     final gap = reviewDaysAgo(last, snapshot.day);
     if (gap >= 3) {
       progress.add(
-        'استأنفت اليوم العمل على «${tag['tag']}». كان آخر إنجاز أو وقت عمل سجّلته تحت هذا الوسم ${reviewRelativeDay(gap)}.',
+        'عدت اليوم إلى مشروع «${project['tag']}» بعد أن كان آخر عمل مسجّل فيه ${reviewRelativeDay(gap)}.',
       );
     }
   }
-  // Keep a note tied to the specific open task it can help the user resume.
-  final noted = pending.where((p) => p['latestNoteToday'] != null).firstOrNull;
-  if (progress.isEmpty && noted == null) {
-    final event = events
-        .where(
-          (e) =>
-              e['event'] == 'note' &&
-              (e['excerpt'] as String? ?? '').isNotEmpty,
-        )
-        .firstOrNull;
-    if (event != null) {
-      progress.add(
-        'دوّنت اليوم في «${event['task']}» ما وصلت إليه بقولك «${event['excerpt']}».',
-      );
-    }
-  }
-  if (manual > 0 && (focus == 0 || progress.isEmpty)) {
+  if (manual > 0 && focus == 0) {
     final event = events.where((e) => e['event'] == 'manual').firstOrNull;
-    if (focus == 0 || event != null) {
-      progress.add(
-        event == null
-            ? 'يظهر العمل اليوم أيضًا في الوقت الذي أضفته يدويًا، وقد بلغ ${reviewDuration(manual)}.'
-            : 'يظهر جانب من عملك على «${event['task']}» في الوقت المضاف يدويًا. سجّلت لها ${reviewDuration(event['minutes'] as int)} بهذه الطريقة.',
-      );
-    }
+    progress.add(
+      event == null
+          ? 'أضفت ${reviewDuration(manual)} من العمل يدويًا اليوم.'
+          : 'تظهر متابعتك في الوقت الذي أضفته يدويًا إلى ${area(event)}، ومنه ${reviewDuration(event['minutes'] as int)}.',
+    );
   }
   if (progress.isNotEmpty) paragraph(progress.first, progress.skip(1));
 
-  if (sections.isEmpty && noted == null) {
-    final plan = events.where((e) => e['event'] == 'created').take(2);
+  final quiet = completed == 0 && focus == 0 && manual == 0;
+  final upcoming = rows('upcomingExamples');
+  final noted = pending.where((r) => r['latestNoteToday'] != null).firstOrNull;
+  final pinned = pending.where((r) => r['pinned'] == true).firstOrNull;
+  final sameProject = projects.where((r) => r['nextTask'] != null).firstOrNull;
+  Map? next = noted ?? pinned;
+  if (next == null && sameProject != null) {
+    next = {
+      'task': sameProject['nextTask'],
+      'tag': sameProject['tag'],
+      'listNow': 'today',
+    };
+  }
+  next ??=
+      pending.where((r) => r['previousProjectWork'] != null).firstOrNull ??
+      pending.firstOrNull;
+  next ??= upcoming.firstOrNull;
+  if (sections.isEmpty) {
     paragraph(
-      created > 0 && focus == 0 && manual == 0 && notes == 0
-          ? 'ما سجلته حتى الآن يتعلق بتخطيط العمل${plan.isEmpty ? '' : '، ومنه إضافة ${_names(plan)}'}.'
-          : 'ما زالت شواهد التنفيذ اليوم محدودة.',
-      ['السجل محدود للحكم على سير التنفيذ حتى الآن.'],
+      notes > 0
+          ? 'دوّنت اليوم ما يساعدك على تذكّر أين توقّفت. يمكنك البناء عليه عندما تعود إلى العمل.'
+          : created > 0 && snapshot.hasActivity
+          ? 'ما ظهر من يومك حتى الآن هو التحضير لما تريد إنجازه. اختر نتيجة صغيرة تودّ الوصول إليها في جلستك الأولى.'
+          : 'ما زال سجل اليوم خفيفًا. لنأخذ ما أمامك خطوةً خطوة.',
+      [],
     );
   }
-  final project = projects.where((p) => p['nextTask'] != null).firstOrNull;
-  final pinned = pending.where((p) => p['pinned'] == true).firstOrNull;
-  if (noted != null) {
-    paragraph(
-      'تبقى «${noted['task']}» مفتوحة. كتبت فيها اليوم «${noted['latestNoteToday']}».',
-      ['يمكنك الرجوع إلى هذه الملاحظة لتحديد نقطة البداية عند استئناف المهمة.'],
-    );
-    if (sections.length > 1) sections.last['next'] = true;
-  } else if (project != null) {
-    paragraph(
-      'بعد ما أنجزته اليوم في «${project['tag']}»، تبقى «${project['nextTask']}» ضمن أعمال اليوم تحت الوسم نفسه.',
-      ['إذا أردت مواصلة العمل تحت هذا الوسم، فهذه نقطة بداية للجلسة التالية.'],
-    );
+  if (next != null) {
+    final destination = area(next);
+    final String opening;
+    final note = next['latestNoteToday'] as String?;
+    if (next['listNow'] == 'tomorrow') {
+      opening =
+          'لديك عمل مخطّط للغد${inArea(next)}. إن أحببت أن تيسّر بدايته، يكفي اليوم أن تجهّز أول ما ستحتاج إليه.';
+    } else if (next['listNow'] == 'later') {
+      opening =
+          'لديك عمل احتفظت به لوقت لاحق${inArea(next)}. إن أحببت، حدّد الآن كيف ستبدأ واترك التنفيذ للوقت الذي يناسبك.';
+    } else if (noted != null) {
+      final quotable =
+          note != null &&
+          note.runes.length <= 55 &&
+          !note.contains('\n') &&
+          !note.contains(next['task'] as String) &&
+          !(next['task'] as String).contains(note);
+      opening = quotable
+          ? 'عندما تعود إلى $destination، يمكنك البناء على ملاحظتك «$note».'
+          : 'لديك نقطة جاهزة للعودة إلى $destination. افتح آخر ملاحظة كتبتها اليوم واختر منها ما تودّ متابعته.';
+    } else if (pinned != null) {
+      opening =
+          'اخترت تثبيت عمل${inArea(next)} ضمن قائمة اليوم. إذا كان ما يزال الأهم بالنسبة إليك، فابدأ منه.';
+    } else if (sameProject != null && next['tag'] == sameProject['tag']) {
+      opening =
+          'ما زالت أمامك خطوة في $destination. إن رغبت في مواصلة ما أنجزته فيه اليوم، يمكنك البناء عليه ما دامت تفاصيله حاضرة.';
+    } else {
+      opening =
+          'من الخيارات المتاحة في قائمة اليوم أن تبدأ بخطوة واحدة${inArea(next)}.';
+    }
+    final previousWork = next['previousProjectWork'] as String?;
+    if (quiet && previousWork != null && next['tag'] != null) {
+      final when = reviewRelativeDay(reviewDaysAgo(previousWork, snapshot.day));
+      paragraph('كنت تعمل على $destination $when. $opening', [step(next)]);
+    } else {
+      paragraph(opening, [step(next)]);
+    }
     sections.last['next'] = true;
-  } else if (pinned != null && focus > 0 && pinned['focusToday'] == null) {
+  } else if (quiet) {
+    final recent =
+        rows('priorCompletedTasks').firstOrNull ??
+        rows('historicalExamples')
+            .where(
+              (r) =>
+                  const {'completed', 'focus', 'manual'}.contains(r['event']),
+            )
+            .firstOrNull;
     paragraph(
-      'تظل «${pinned['task']}» مثبّتة في قائمة اليوم، بينما ذهبت جلسات التركيز المسجّلة إلى مهام أخرى.',
-      ['قبل الجلسة التالية، راجع ما إذا كانت ما تزال الأولى باهتمامك.'],
+      recent == null
+          ? 'ما النتيجة الصغيرة التي تحب أن تكون قد أنجزتها حين تنتهي من جلستك القادمة؟'
+          : 'ما عملت عليه مؤخرًا${inArea(recent)} قد يساعدك على الاختيار. هل يحتاج إلى متابعة، أم تفضّل أن تبدأ بشيء جديد؟',
+      ['دوّن الخطوة التي تختارها بصيغة فعل واضح يمكنك البدء به.'],
     );
     sections.last['next'] = true;
   }
@@ -202,9 +240,11 @@ String qwenEvidence(ReviewSnapshot snapshot) {
     'أمثلة من إنجازات سابقة': rows('priorCompletedTasks'),
     'المهام المفتوحة حسب القائمة': data['openNow'],
     'دقائق التركيز حسب المهمة اليوم': data['topFocusMinutesTodayByTask'],
-    'دقائق التركيز حسب الوسم اليوم': data['topFocusMinutesTodayByTag'],
+    'دقائق التركيز حسب المشروع اليوم': data['topFocusMinutesTodayByTag'],
     'أمثلة من أحداث اليوم': events.take(4).toList(),
     'أمثلة من الأيام السابقة': rows('historicalExamples').take(3).toList(),
+    'أعمال منتظرة': [...pending.take(2), ...upcoming.take(3)],
+    'subjects': subjects,
     'sections': sections,
   });
 }
