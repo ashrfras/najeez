@@ -203,7 +203,7 @@ void main() {
   );
 
   testWidgets(
-    'notes scroll through the bottom fade with a fixed header and search',
+    'notes scroll to the bottom edge with a fixed header and search',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(390, 480);
@@ -242,12 +242,12 @@ void main() {
             gradient.colors.first.a == 0 &&
             gradient.colors.last.a == 1;
       });
-      expect(tester.getRect(bottomFade).bottom, 480);
+      expect(bottomFade, findsNothing);
       final position = Scrollable.of(
         tester.element(find.byType(NoteCard).first),
       ).position;
       await tester.dragFrom(
-        tester.getCenter(bottomFade),
+        tester.getRect(scroll).bottomCenter - const Offset(0, 16),
         const Offset(0, -100),
       );
       await tester.pumpAndSettle();
@@ -274,6 +274,8 @@ void main() {
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(390, 844);
+      tester.view.padding = const FakeViewPadding(top: 47, bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(top: 47, bottom: 34);
       addTearDown(tester.view.reset);
       final controller = TaskController(MemoryRepository());
       addTearDown(controller.dispose);
@@ -329,7 +331,10 @@ void main() {
         tester.getRect(find.byTooltip('رجوع')).top,
         greaterThanOrEqualTo(16),
       );
-      expect(tester.getRect(editor).top, 72);
+      expect(tester.getRect(editor).top, 47 + 72);
+      const bottomSafeEdge = 844 - 34;
+      expect(tester.getRect(closeButton).bottom, bottomSafeEdge);
+      expect(tester.getRect(menu).bottom, bottomSafeEdge);
       final input = tester.widget<TextField>(editor).decoration!;
       expect(input.filled, isFalse);
       expect(input.border, InputBorder.none);
@@ -381,8 +386,13 @@ void main() {
         find.byType(TextField).last,
         'الملاحظة بعد التعديل',
       );
-      await tester.pump();
-      await tester.tap(find.text('إغلاق'));
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      tester.view.padding = const FakeViewPadding(top: 47);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(menu).bottom, 844 - 300 - 8);
+      await tester.tap(closeButton);
+      tester.view.resetViewInsets();
+      tester.view.padding = const FakeViewPadding(top: 47, bottom: 34);
       await tester.pumpAndSettle();
       expect(find.text('الملاحظة بعد التعديل'), findsOneWidget);
       expect(controller.searchNotes('قصيرة'), isEmpty);

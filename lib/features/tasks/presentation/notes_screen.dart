@@ -190,11 +190,12 @@ class _NoteComposerScreenState extends State<NoteComposerScreen> {
       context,
       Scaffold(
         body: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 8),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 540),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -913,39 +914,13 @@ class _NotesScreenState extends State<NotesScreen> {
                     ),
                   );
                 }
-                final background = Theme.of(context).scaffoldBackgroundColor;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    SingleChildScrollView(
-                      padding: endPadding,
-                      child: _NotesGrid(
-                        onTaskActions: widget.onTaskActions,
-                        controller: widget.controller,
-                        notes: notes,
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: padding.bottom,
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                background.withValues(alpha: 0),
-                                background,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                return SingleChildScrollView(
+                  padding: endPadding,
+                  child: _NotesGrid(
+                    onTaskActions: widget.onTaskActions,
+                    controller: widget.controller,
+                    notes: notes,
+                  ),
                 );
               },
             ),
