@@ -282,7 +282,7 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                                     widget.controller!,
                                     widget.task.tag!,
                                   ),
-                            child: _TagBadge(
+                            child: TagBadge(
                               label: widget.task.tag!,
                               color: widget.controller?.categoryColor(
                                 widget.task.tag,
@@ -363,8 +363,8 @@ class _TaskStrikePainter extends CustomPainter {
       maxLines != oldDelegate.maxLines;
 }
 
-class _TagBadge extends StatelessWidget {
-  const _TagBadge({required this.label, this.color});
+class TagBadge extends StatelessWidget {
+  const TagBadge({super.key, required this.label, this.color});
   final Color? color;
   final String label;
 

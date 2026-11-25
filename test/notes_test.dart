@@ -7,6 +7,7 @@ import 'package:najeez/features/tasks/data/sqlite_task_repository.dart';
 import 'package:najeez/features/tasks/domain/task.dart';
 import 'package:najeez/features/tasks/domain/task_controller.dart';
 import 'package:najeez/features/tasks/presentation/notes_screen.dart';
+import 'package:najeez/features/tasks/presentation/task_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -82,7 +83,9 @@ void main() {
     final controller = TaskController(MemoryRepository());
     addTearDown(controller.dispose);
     await controller.load();
-    await controller.create('مهمة الملاحظات');
+    const category = 'عمل';
+    await controller.create('مهمة الملاحظات', tag: category);
+    await controller.setCategoryColor(category, AppColors.orange);
     await tester.pumpWidget(
       BaqiApp(controller: controller, splashDuration: Duration.zero),
     );
@@ -147,6 +150,20 @@ void main() {
       find.widgetWithText(TextButton, 'عرض الكل').last,
     );
     await tester.pumpAndSettle();
+    final preview = find.byType(NotePreviewRow);
+    final badge = find.descendant(of: preview, matching: find.byType(TagBadge));
+    final title = find.descendant(
+      of: preview,
+      matching: find.text('مهمة الملاحظات'),
+    );
+    final badgeBounds = tester.getRect(badge);
+    expect(badgeBounds.left, closeTo(tester.getRect(preview).left + 12, .01));
+    expect(tester.getRect(title).left, closeTo(badgeBounds.right + 6, .01));
+    expect(tester.widget<TagBadge>(badge).label, category);
+    expect(tester.widget<TagBadge>(badge).color, AppColors.orange);
+    await controller.setCategoryColor(category, AppColors.blue);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TagBadge>(badge).color, AppColors.blue);
     await tester.tap(find.text('آخر الملاحظات'));
     await tester.pumpAndSettle();
     expect(find.byType(NotesScreen), findsOneWidget);
@@ -280,7 +297,9 @@ void main() {
       final controller = TaskController(MemoryRepository());
       addTearDown(controller.dispose);
       await controller.load();
-      await controller.create('المهمة المرتبطة');
+      const category = 'عمل';
+      await controller.create('المهمة المرتبطة', tag: category);
+      await controller.setCategoryColor(category, AppColors.orange);
       final task = controller.tasks.single;
       await controller.addNote(task, 'ملاحظة قصيرة');
       await controller.addNote(task, List.filled(8, 'تفاصيل طويلة').join('\n'));
@@ -295,6 +314,33 @@ void main() {
       await tester.pumpAndSettle();
       final cards = find.byType(NoteCard);
       expect(cards, findsNWidgets(2));
+      for (var i = 0; i < 2; i++) {
+        final title = find.descendant(
+          of: cards.at(i),
+          matching: find.text('المهمة المرتبطة'),
+        );
+        final badge = find.descendant(
+          of: cards.at(i),
+          matching: find.text(category),
+        );
+        final badgeBounds = tester.getRect(
+          find.ancestor(of: badge, matching: find.byType(TagBadge)),
+        );
+        expect(
+          badgeBounds.left,
+          closeTo(tester.getRect(cards.at(i)).left + 13, 1),
+        );
+        expect(tester.getRect(title).left, closeTo(badgeBounds.right + 6, .01));
+        expect(tester.widget<Text>(badge).style!.color, AppColors.orange);
+      }
+      await controller.setCategoryColor(category, AppColors.blue);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widgetList<Text>(find.text(category))
+            .map((text) => text.style!.color),
+        everyElement(AppColors.blue),
+      );
       final first = tester.getRect(cards.at(0));
       final second = tester.getRect(cards.at(1));
       expect(first.top, second.top);

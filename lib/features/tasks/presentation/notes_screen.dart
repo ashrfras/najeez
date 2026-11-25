@@ -484,24 +484,40 @@ class _NoteComposerScreenState extends State<NoteComposerScreen> {
 }
 
 class _TaskLabel extends StatelessWidget {
-  const _TaskLabel({required this.task});
+  const _TaskLabel({required this.task, required this.controller});
   final Task task;
+  final TaskController controller;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Icon(Icons.task_alt, size: 14, color: AppColors.muted),
-      const SizedBox(width: 6),
-      Expanded(
-        child: Text(
-          task.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppType.caption,
-        ),
+  Widget build(BuildContext context) {
+    final tag = task.tag?.trim() ?? '';
+    final showCategory = tag.isNotEmpty;
+    return LayoutBuilder(
+      builder: (context, constraints) => Row(
+        textDirection: showCategory ? TextDirection.rtl : null,
+        children: [
+          const Icon(Icons.task_alt, size: 14, color: AppColors.muted),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              task.title,
+              textAlign: showCategory ? TextAlign.right : null,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.caption,
+            ),
+          ),
+          if (showCategory) ...[
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * .4),
+              child: TagBadge(label: tag, color: controller.categoryColor(tag)),
+            ),
+          ],
+        ],
       ),
-    ],
-  );
+    );
+  }
 }
 
 Future<bool> _confirmDeleteNote(
@@ -598,7 +614,7 @@ class NoteCard extends StatelessWidget {
                 style: AppType.body.copyWith(height: 1.6),
               ),
               const SizedBox(height: 14),
-              _TaskLabel(task: task),
+              _TaskLabel(task: task, controller: controller),
             ],
           ),
         ),
@@ -745,7 +761,7 @@ class NotePreviewRow extends StatelessWidget {
                   style: AppType.body,
                 ),
                 const SizedBox(height: 6),
-                _TaskLabel(task: task),
+                _TaskLabel(task: task, controller: controller),
               ],
             ),
           ),
