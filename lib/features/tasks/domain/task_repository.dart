@@ -1,4 +1,3 @@
-import '../../review/daily_review.dart';
 import 'task.dart';
 
 abstract class TaskRepository {
@@ -22,12 +21,6 @@ abstract class TaskRepository {
   Future<void> setTimeTrackingEnabled(bool enabled) async {}
   Future<Map<String, int>> getCategoryColors() async => {};
   Future<void> setCategoryColor(String tag, int color) async {}
-  Future<void> resetForNewUse(DateTime timestamp) => reset();
-  Future<DateTime> ensureFirstUse(DateTime earliest) async => earliest;
-  Future<SavedDailyReview?> getDailyReview() async => null;
-  Future<void> saveDailyReview(SavedDailyReview review) async {
-    throw UnsupportedError('Daily review storage unavailable');
-  }
 
   Future<void> close();
 }

@@ -227,14 +227,19 @@ void main() {
           .widget<ListView>(find.byType(ListView))
           .childrenDelegate
           .estimatedChildCount!;
+      final loadMore = find.widgetWithText(TextButton, 'عرض أيام سابقة');
       expect(itemCount(), 9); // Header, seven days, load button.
-      await tester.scrollUntilVisible(find.text('عرض أيام سابقة'), 250);
-      await tester.tap(find.text('عرض أيام سابقة'));
+      await tester.scrollUntilVisible(loadMore, 250);
+      await tester.ensureVisible(loadMore);
+      await tester.pumpAndSettle();
+      await tester.tap(loadMore);
       await tester.pumpAndSettle();
       expect(itemCount(), 16); // Header, fourteen days, load button.
-      await tester.scrollUntilVisible(find.text('عرض أيام سابقة'), 250);
+      await tester.scrollUntilVisible(loadMore, 250);
       expect(find.text('الأحد، 4 أكتوبر'), findsOneWidget);
-      await tester.tap(find.text('عرض أيام سابقة'));
+      await tester.ensureVisible(loadMore);
+      await tester.pumpAndSettle();
+      await tester.tap(loadMore);
       await tester.pumpAndSettle();
       expect(
         itemCount(),

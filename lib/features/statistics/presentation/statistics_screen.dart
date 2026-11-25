@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../review/review_screen.dart';
-import '../../review/qwen_review_model.dart';
-import '../../review/review_identity.dart';
 import '../../../core/arabic_dates.dart';
 import '../../../core/design.dart';
 import '../../../core/activity_page.dart';
@@ -162,17 +159,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 tracking: _tracking,
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        ReviewEntryCard(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ReviewScreen(
-                controller: widget.controller,
-                model: const QwenReviewModel(),
-              ),
-            ),
           ),
         ),
         const SizedBox(height: 24),

@@ -19,14 +19,6 @@ flutter run
 - Statistics shows the latest seven logical calendar days (including today), with up to seven more loaded on demand until the oldest completion or time entry. Empty history (including after reset) keeps only the latest week. Time distribution uses each time entry’s date, including work on open tasks; completion counts use completion dates. Untagged time appears under «أخرى». The storage-independent statistics index is rebuilt on task changes, while day cards are rendered lazily without chart dependencies.
 - IBM Plex Sans Arabic is bundled under its Open Font License in `assets/fonts/OFL.txt`, so typography works without a network connection.
 
-## Local daily review on iPhone
-
-The first tap on **تنزيل النموذج** downloads 1.28 GB of Qwen3 1.7B Q4_K_M weights. The iOS bridge verifies the pinned SHA-256 before publishing the file in Application Support and excludes the directory from backup. Removing the model from the reviewer keeps the saved review. [Quantized weights](https://huggingface.co/bartowski/Qwen_Qwen3-1.7B-GGUF/tree/dcb19155b962dbb6389f4691a982043a8e651022) · [Original model and license](https://huggingface.co/Qwen/Qwen3-1.7B)
-
-The device build resolves a pinned llama.cpp XCFramework through SwiftPM. The app loads the inference framework on demand. Current eligibility requires iOS 16.4, Metal Apple GPU family 7 or later, and at least 5 GiB of physical RAM. The app also checks current process memory headroom before download and inference. Simulator builds expose the unsupported state. [Runtime release](https://github.com/ggml-org/llama.cpp/releases/tag/b12633)
-
-The review uses the current logical day and up to 27 preceding days. Dart computes totals, same-time comparisons and evidence-backed Arabic observations. A dedicated sample of today's completions reaches Qwen independently of recent focus sessions and notes. Qwen selects the opening and interprets the available evidence across multiple paragraphs on outcomes, focus, project progress and open work. Project tags and short descriptions of the work are used in the displayed text. Qwen uses the original titles locally to select a description and a matching practical suggestion. After the initial seven days, a manual request on a quiet day can draw on today's open work, tomorrow's plans, or the later list. An unchanged planning context does not trigger a repeat.
-
 ## Verify
 
 ```sh

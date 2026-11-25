@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'design.dart';
 import 'status_bar_fade.dart';
 
-/// The statistics and review routes share a viewport, scroll insets and header.
+/// Provides a shared viewport and scroll insets for activity pages.
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key, required this.content});
   final Widget Function(EdgeInsets padding) content;

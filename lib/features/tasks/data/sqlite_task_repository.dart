@@ -3,7 +3,6 @@ import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../../review/daily_review.dart';
 import '../domain/task.dart';
 import '../domain/task_repository.dart';
 
@@ -241,41 +240,6 @@ class SqliteTaskRepository implements TaskRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  @override
-  Future<DateTime> ensureFirstUse(DateTime earliest) =>
-      _database.transaction((txn) async {
-        await txn.insert('settings', {
-          'key': 'first_use',
-          'value': earliest.toUtc().toIso8601String(),
-        }, conflictAlgorithm: ConflictAlgorithm.ignore);
-        final rows = await txn.query(
-          'settings',
-          where: 'key = ?',
-          whereArgs: ['first_use'],
-        );
-        return DateTime.parse(rows.single['value'] as String);
-      });
-
-  @override
-  Future<SavedDailyReview?> getDailyReview() async {
-    final rows = await _database.query(
-      'settings',
-      where: 'key = ?',
-      whereArgs: ['daily_review'],
-    );
-    return rows.isEmpty
-        ? null
-        : SavedDailyReview.decode(rows.single['value'] as String);
-  }
-
-  @override
-  Future<void> saveDailyReview(SavedDailyReview review) async {
-    await _database.insert('settings', {
-      'key': 'daily_review',
-      'value': review.encode(),
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
   Future<String?> backupSetting(String key) async {
     final rows = await _database.query(
       'settings',
@@ -321,8 +285,6 @@ class SqliteTaskRepository implements TaskRepository {
     for (final row in settings) {
       final key = row['key'] as String;
       final value = row['value'] as String;
-      if (key == 'daily_review') SavedDailyReview.decode(value);
-      if (key == 'first_use') DateTime.parse(value);
       if (key.startsWith('daily_repeat:')) _repeatFromSetting(row);
       if (key == 'logical_day_start') {
         final minutes = int.parse(value);
@@ -365,19 +327,10 @@ class SqliteTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<void> resetForNewUse(DateTime timestamp) => reset(firstUse: timestamp);
-
-  @override
-  Future<void> reset({DateTime? firstUse}) async {
+  Future<void> reset() async {
     await _database.transaction((transaction) async {
       await transaction.delete('tasks');
       await transaction.delete('settings');
-      if (firstUse != null) {
-        await transaction.insert('settings', {
-          'key': 'first_use',
-          'value': firstUse.toUtc().toIso8601String(),
-        });
-      }
     });
   }
 

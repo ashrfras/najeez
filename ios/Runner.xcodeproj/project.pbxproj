@@ -7,14 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		08BF2D007DF2E3DAE4615002 /* Qwen3.txt in Resources */ = {isa = PBXBuildFile; fileRef = C67BE7F13353DA418B3F0ECF /* Qwen3.txt */; };
 		1464484CD5E7BA2A7883C75E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3D168B34D12F5A5807E5C542 /* Foundation.framework */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
-		1612B080C8A5296FB3C63C79 /* llama.cpp.txt in Resources */ = {isa = PBXBuildFile; fileRef = 57379BF706061271FEF3D6BA /* llama.cpp.txt */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		4BB3305E83098E5C1B9BCFB9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6604812254CC4B06194ADB0D /* PrivacyInfo.xcprivacy */; };
-		5B262E66FAB7B2F6FF690727 /* NajeezInference.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 227677A5792C6A5D1AA25398 /* NajeezInference.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6A6E03F0CA950B0DBBA8C414 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E42E979DD5BFB0C15026D09 /* FocusActivityAttributes.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
@@ -24,13 +21,8 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		9F71BAD9BB3DA0936C4A3B60 /* FocusActivityExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8B0301C145DD2FA2AAE301EE /* FocusActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C10D00010000000000000001 /* CloudBackupBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10D00010000000000000002 /* CloudBackupBridge.swift */; };
-		C98304607E6146BD70EDDBCB /* QwenReviewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49B00B0EE43A13D58E2124A /* QwenReviewBridge.swift */; };
-		D0E0C4FC64F88A1310D7A293 /* QwenEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D959841956342DC502052F49 /* QwenEngine.swift */; };
 		D25339598C2876F4ECAF80F0 /* FocusActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE008D8560FE983D2284A53 /* FocusActivityWidget.swift */; };
-		DA7179E83DCFE1B283F46756 /* Entry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8694AF041BB415E5A59B0615 /* Entry.swift */; };
 		DBF11D1AF0EED5E2F0732EA5 /* FocusActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E42E979DD5BFB0C15026D09 /* FocusActivityAttributes.swift */; };
-		F4C345A77B89B593F08453E0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10F51A113B9AFBAA7FBCF7E6 /* Foundation.framework */; };
-		F5B74D57E3D0B0C5EFB8D371 /* QwenModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639683FBEF7228D0804BDC0B /* QwenModelStore.swift */; };
 		FFCF9CB12498C972FE9B2BF1 /* FocusActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */; };
 /* End PBXBuildFile section */
 
@@ -42,13 +34,6 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
-		33D56DC6F3ECFDCB4C2B0024 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 12B25FEC20DB35A8047787EE;
-			remoteInfo = NajeezInference;
-		};
 		64F93625D7BC1F6A00920BA3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -59,17 +44,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				5B262E66FAB7B2F6FF690727 /* NajeezInference.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		DFB14DAC913298829E07DB6E /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -84,16 +58,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		10F51A113B9AFBAA7FBCF7E6 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
-		227677A5792C6A5D1AA25398 /* NajeezInference.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NajeezInference.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		3D168B34D12F5A5807E5C542 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		57379BF706061271FEF3D6BA /* llama.cpp.txt */ = {isa = PBXFileReference; includeInIndex = 1; name = llama.cpp.txt; path = Sources/QwenRuntime/Licenses/llama.cpp.txt; sourceTree = "<group>"; };
-		639683FBEF7228D0804BDC0B /* QwenModelStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QwenModelStore.swift; sourceTree = "<group>"; };
 		6604812254CC4B06194ADB0D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -101,7 +71,6 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7C44FAEDB50A13FC79B46209 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8694AF041BB415E5A59B0615 /* Entry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Entry.swift; sourceTree = "<group>"; };
 		8B0301C145DD2FA2AAE301EE /* FocusActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FocusActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -112,12 +81,9 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9B77EDAD648231AD3E0A41F0 /* Version.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		9E42E979DD5BFB0C15026D09 /* FocusActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityAttributes.swift; sourceTree = "<group>"; };
-		A49B00B0EE43A13D58E2124A /* QwenReviewBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QwenReviewBridge.swift; sourceTree = "<group>"; };
 		C10D00010000000000000002 /* CloudBackupBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudBackupBridge.swift; sourceTree = "<group>"; };
 		C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityBridge.swift; sourceTree = "<group>"; };
-		C67BE7F13353DA418B3F0ECF /* Qwen3.txt */ = {isa = PBXFileReference; includeInIndex = 1; name = Qwen3.txt; path = Sources/QwenRuntime/Licenses/Qwen3.txt; sourceTree = "<group>"; };
 		CFE008D8560FE983D2284A53 /* FocusActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusActivityWidget.swift; sourceTree = "<group>"; };
-		D959841956342DC502052F49 /* QwenEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = QwenEngine.swift; path = Sources/QwenRuntime/QwenEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,43 +103,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F11F63F47147848795FD44F0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F4C345A77B89B593F08453E0 /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		063179D1AE7A2910113F0A44 /* QwenRuntime */ = {
-			isa = PBXGroup;
-			children = (
-				D959841956342DC502052F49 /* QwenEngine.swift */,
-				57379BF706061271FEF3D6BA /* llama.cpp.txt */,
-				C67BE7F13353DA418B3F0ECF /* Qwen3.txt */,
-			);
-			name = QwenRuntime;
-			path = QwenRuntime;
-			sourceTree = "<group>";
-		};
 		331C8082294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
-			sourceTree = "<group>";
-		};
-		34891AA942EDB27BF91DAD62 /* NajeezInference */ = {
-			isa = PBXGroup;
-			children = (
-				8694AF041BB415E5A59B0615 /* Entry.swift */,
-			);
-			name = NajeezInference;
-			path = NajeezInference;
 			sourceTree = "<group>";
 		};
 		52F0498DC73991F14328F873 /* FocusActivityShared */ = {
@@ -226,8 +164,6 @@
 				52F0498DC73991F14328F873 /* FocusActivityShared */,
 				655C52686A568EEE6F956FBC /* Frameworks */,
 				89B58442BC575919844D200D /* FocusActivityExtension */,
-				34891AA942EDB27BF91DAD62 /* NajeezInference */,
-				063179D1AE7A2910113F0A44 /* QwenRuntime */,
 			);
 			sourceTree = "<group>";
 		};
@@ -237,7 +173,6 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				8B0301C145DD2FA2AAE301EE /* FocusActivityExtension.appex */,
-				227677A5792C6A5D1AA25398 /* NajeezInference.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -256,8 +191,6 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				C2702A0D0E7D987D49C2F34F /* FocusActivityBridge.swift */,
-				A49B00B0EE43A13D58E2124A /* QwenReviewBridge.swift */,
-				639683FBEF7228D0804BDC0B /* QwenModelStore.swift */,
 				6604812254CC4B06194ADB0D /* PrivacyInfo.xcprivacy */,
 			);
 			path = Runner;
@@ -267,43 +200,13 @@
 			isa = PBXGroup;
 			children = (
 				3D168B34D12F5A5807E5C542 /* Foundation.framework */,
-				10F51A113B9AFBAA7FBCF7E6 /* Foundation.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
-/* Begin PBXHeadersBuildPhase section */
-		B9AADCB8E7C0F701A974BE2A /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXHeadersBuildPhase section */
-
 /* Begin PBXNativeTarget section */
-		12B25FEC20DB35A8047787EE /* NajeezInference */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5303880E6FCFA3D42B20113D /* Build configuration list for PBXNativeTarget "NajeezInference" */;
-			buildPhases = (
-				097003B4DF16803B3CD10506 /* Prepare device inference runtime */,
-				B9AADCB8E7C0F701A974BE2A /* Headers */,
-				E654BD5424AF7A4ED6F898D1 /* Sources */,
-				F11F63F47147848795FD44F0 /* Frameworks */,
-				65B2C7B157CA4130D3A41090 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = NajeezInference;
-			productName = NajeezInference;
-			productReference = 227677A5792C6A5D1AA25398 /* NajeezInference.framework */;
-			productType = "com.apple.product-type.framework";
-		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -329,16 +232,13 @@
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
-				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				DFB14DAC913298829E07DB6E /* Embed App Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
-				36A99AA1BB57C4AF9858E396 /* Embed device inference runtime */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				5A9C49DF71937E3EFB405440 /* PBXTargetDependency */,
-				D3FE2FF1EBAF04A3F39C47DD /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -404,7 +304,6 @@
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				BB3192F9D5C146CB4FF70826 /* FocusActivityExtension */,
-				12B25FEC20DB35A8047787EE /* NajeezInference */,
 			);
 		};
 /* End PBXProject section */
@@ -414,15 +313,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		65B2C7B157CA4130D3A41090 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				1612B080C8A5296FB3C63C79 /* llama.cpp.txt in Resources */,
-				08BF2D007DF2E3DAE4615002 /* Qwen3.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -448,46 +338,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		097003B4DF16803B3CD10506 /* Prepare device inference runtime */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/QwenRuntime/prepare-device-runtime.sh",
-				"$(SRCROOT)/QwenRuntime/Package.swift",
-			);
-			name = "Prepare device inference runtime";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$SRCROOT/QwenRuntime/prepare-device-runtime.sh\"";
-		};
-		36A99AA1BB57C4AF9858E396 /* Embed device inference runtime */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Embed device inference runtime";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$SRCROOT/QwenRuntime/embed-device-runtime.sh\"";
-		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -540,17 +390,6 @@
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				6A6E03F0CA950B0DBBA8C414 /* FocusActivityAttributes.swift in Sources */,
 				FFCF9CB12498C972FE9B2BF1 /* FocusActivityBridge.swift in Sources */,
-				C98304607E6146BD70EDDBCB /* QwenReviewBridge.swift in Sources */,
-				F5B74D57E3D0B0C5EFB8D371 /* QwenModelStore.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E654BD5424AF7A4ED6F898D1 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				DA7179E83DCFE1B283F46756 /* Entry.swift in Sources */,
-				D0E0C4FC64F88A1310D7A293 /* QwenEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,12 +415,6 @@
 			name = FocusActivityExtension;
 			target = BB3192F9D5C146CB4FF70826 /* FocusActivityExtension */;
 			targetProxy = 64F93625D7BC1F6A00920BA3 /* PBXContainerItemProxy */;
-		};
-		D3FE2FF1EBAF04A3F39C47DD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = NajeezInference;
-			target = 12B25FEC20DB35A8047787EE /* NajeezInference */;
-			targetProxy = 33D56DC6F3ECFDCB4C2B0024 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -954,46 +787,6 @@
 			};
 			name = Release;
 		};
-		B03C500C0625635C3A1C5AF1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = MHA5HH6YWR;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(BUILT_PRODUCTS_DIR)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@loader_path/..",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"-framework",
-					llama,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = ma.raqmain.najeez.inference;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
 		B1169B372468F171C0D80BE4 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9B77EDAD648231AD3E0A41F0 /* Version.xcconfig */;
@@ -1023,88 +816,6 @@
 			};
 			name = Profile;
 		};
-		C1ECEEBAE1952A6505E87553 /* Profile */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = MHA5HH6YWR;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(BUILT_PRODUCTS_DIR)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@loader_path/..",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"-framework",
-					llama,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = ma.raqmain.najeez.inference;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Profile;
-		};
-		CC59F24B61BE8861B221DA9C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = MHA5HH6YWR;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"$(BUILT_PRODUCTS_DIR)",
-				);
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@loader_path/..",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
-					"$(inherited)",
-					"-framework",
-					llama,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = ma.raqmain.najeez.inference;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1114,16 +825,6 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		5303880E6FCFA3D42B20113D /* Build configuration list for PBXNativeTarget "NajeezInference" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CC59F24B61BE8861B221DA9C /* Release */,
-				B03C500C0625635C3A1C5AF1 /* Debug */,
-				C1ECEEBAE1952A6505E87553 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
